@@ -1,0 +1,318 @@
+{
+  "data_hora": "2026-01-28 09:07:44",
+  "fase": "Inicial I, 4.4 a 6.2 Kg",
+  "custo_R$_kg": 1.350818,
+  "custo_R$_ton": 1350.82,
+  "fb_max": null,
+  "ee_max": null,
+  "ingredientes": [
+    {
+      "Ingrediente": "Sorgo. Grão",
+      "Inclusao_%": 68.7881,
+      "Preco_R$/kg": 0.68
+    },
+    {
+      "Ingrediente": "Plasma Sanguíneo",
+      "Inclusao_%": 17.4799,
+      "Preco_R$/kg": 3.0
+    },
+    {
+      "Ingrediente": "F. Carne e ossos Bovino",
+      "Inclusao_%": 10.7554,
+      "Preco_R$/kg": 0.9
+    },
+    {
+      "Ingrediente": "Óleo. Soja",
+      "Inclusao_%": 2.2332,
+      "Preco_R$/kg": 6.5
+    },
+    {
+      "Ingrediente": "Metionina",
+      "Inclusao_%": 0.6119,
+      "Preco_R$/kg": 15.0
+    },
+    {
+      "Ingrediente": "Lisina - HCl",
+      "Inclusao_%": 0.0989,
+      "Preco_R$/kg": 15.3
+    },
+    {
+      "Ingrediente": "Triptofano",
+      "Inclusao_%": 0.0327,
+      "Preco_R$/kg": 30.0
+    }
+  ],
+  "nutrientes": [
+    {
+      "Nutriente": "PB",
+      "Obtido": 24.0531,
+      "Exigido_min": 23.68,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "EM",
+      "Obtido": 3450.0,
+      "Exigido_min": 3450.0,
+      "Atende?": "NAO"
+    },
+    {
+      "Nutriente": "Pdig",
+      "Obtido": 0.535,
+      "Exigido_min": 0.535,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "Ca",
+      "Obtido": 1.341,
+      "Exigido_min": 1.086,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "Na",
+      "Obtido": 0.6301,
+      "Exigido_min": 0.23,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "Lisina",
+      "Obtido": 1.493,
+      "Exigido_min": 1.493,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "MetCis",
+      "Obtido": 0.896,
+      "Exigido_min": 0.896,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "Treonina",
+      "Obtido": 1.015,
+      "Exigido_min": 1.015,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "Triptofano",
+      "Obtido": 0.313,
+      "Exigido_min": 0.313,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "FB",
+      "Obtido": 1.7747,
+      "Exigido_min": NaN,
+      "Atende?": "-"
+    },
+    {
+      "Nutriente": "EE",
+      "Obtido": 5.8243,
+      "Exigido_min": NaN,
+      "Atende?": "-"
+    }
+  ],
+  "ingredientes_config": [
+    {
+      "Alimentos": "Farelo. Soja",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 2.31
+    },
+    {
+      "Alimentos": "DDGs",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 1.07
+    },
+    {
+      "Alimentos": "F. Carne e ossos Bovino",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 0.9
+    },
+    {
+      "Alimentos": "Farinha de Vísceras",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 2.85
+    },
+    {
+      "Alimentos": "Farinha Sangue",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 2.65
+    },
+    {
+      "Alimentos": "Plasma Sanguíneo",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 3.0
+    },
+    {
+      "Alimentos": "Peixe. Farinha",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 2.25
+    },
+    {
+      "Alimentos": "F. Carne e Ossos Suínos",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 1.2
+    },
+    {
+      "Alimentos": "Milho. Grão",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 1.09
+    },
+    {
+      "Alimentos": "Sorgo. Grão",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 0.68
+    },
+    {
+      "Alimentos": "Aveia. Grão",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 2.0
+    },
+    {
+      "Alimentos": "Casquinha. Soja",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 1.4
+    },
+    {
+      "Alimentos": "Leite. Pó Soro",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 15.0
+    },
+    {
+      "Alimentos": "Milheto. Grão",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 0.6
+    },
+    {
+      "Alimentos": "Arroz. Quirera",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 1.3
+    },
+    {
+      "Alimentos": "Óleo. Soja",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 6.5
+    },
+    {
+      "Alimentos": "Gordura de Suínos",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 6.45
+    },
+    {
+      "Alimentos": "Lisina - HCl",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 15.3
+    },
+    {
+      "Alimentos": "Metionina",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 15.0
+    },
+    {
+      "Alimentos": "Treonina",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 18.0
+    },
+    {
+      "Alimentos": "Triptofano",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 30.0
+    },
+    {
+      "Alimentos": "Fosfato Bicalcico",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 7.0
+    },
+    {
+      "Alimentos": "Calcário Calcítico",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 3.16
+    },
+    {
+      "Alimentos": "Carbonato de Calcio",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 3.12
+    },
+    {
+      "Alimentos": "Sal Comum",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 1.0
+    },
+    {
+      "Alimentos": "Caulim",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 2.0
+    },
+    {
+      "Alimentos": "Premix mineral",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 7.0
+    },
+    {
+      "Alimentos": "Premix vitamínico",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 7.0
+    },
+    {
+      "Alimentos": "nenhum",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 100.0
+    }
+  ]
+}

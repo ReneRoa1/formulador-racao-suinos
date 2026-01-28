@@ -1,0 +1,331 @@
+{
+  "data_hora": "2026-01-28 09:49:15",
+  "fase": "Terminação I, 74 a 103 Kg",
+  "custo_R$_kg": 0.837996,
+  "custo_R$_ton": 838.0,
+  "fb_max": null,
+  "ee_max": null,
+  "ingredientes": [
+    {
+      "Ingrediente": "Sorgo. Grão",
+      "Inclusao_%": 61.0572,
+      "Preco_R$/kg": 0.68
+    },
+    {
+      "Ingrediente": "Milheto. Grão",
+      "Inclusao_%": 30.8419,
+      "Preco_R$/kg": 0.6
+    },
+    {
+      "Ingrediente": "Plasma Sanguíneo",
+      "Inclusao_%": 3.7843,
+      "Preco_R$/kg": 3.0
+    },
+    {
+      "Ingrediente": "F. Carne e ossos Bovino",
+      "Inclusao_%": 3.7326,
+      "Preco_R$/kg": 0.9
+    },
+    {
+      "Ingrediente": "Lisina - HCl",
+      "Inclusao_%": 0.2774,
+      "Preco_R$/kg": 15.3
+    },
+    {
+      "Ingrediente": "Metionina",
+      "Inclusao_%": 0.2552,
+      "Preco_R$/kg": 15.0
+    },
+    {
+      "Ingrediente": "Treonina",
+      "Inclusao_%": 0.0458,
+      "Preco_R$/kg": 18.0
+    },
+    {
+      "Ingrediente": "Triptofano",
+      "Inclusao_%": 0.0056,
+      "Preco_R$/kg": 30.0
+    }
+  ],
+  "nutrientes": [
+    {
+      "Nutriente": "PB",
+      "Obtido": 13.7679,
+      "Exigido_min": 12.16,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "EM",
+      "Obtido": 3250.0,
+      "Exigido_min": 3250.0,
+      "Atende?": "NAO"
+    },
+    {
+      "Nutriente": "Pdig",
+      "Obtido": 0.2398,
+      "Exigido_min": 0.239,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "Ca",
+      "Obtido": 0.485,
+      "Exigido_min": 0.485,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "Na",
+      "Obtido": 0.158,
+      "Exigido_min": 0.158,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "Lisina",
+      "Obtido": 0.761,
+      "Exigido_min": 0.761,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "MetCis",
+      "Obtido": 0.457,
+      "Exigido_min": 0.457,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "Treonina",
+      "Obtido": 0.518,
+      "Exigido_min": 0.518,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "Triptofano",
+      "Obtido": 0.152,
+      "Exigido_min": 0.152,
+      "Atende?": "OK"
+    },
+    {
+      "Nutriente": "FB",
+      "Obtido": 2.3031,
+      "Exigido_min": NaN,
+      "Atende?": "-"
+    },
+    {
+      "Nutriente": "EE",
+      "Obtido": 3.8062,
+      "Exigido_min": NaN,
+      "Atende?": "-"
+    }
+  ],
+  "ingredientes_config": [
+    {
+      "Alimentos": "Farelo. Soja",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 2.31
+    },
+    {
+      "Alimentos": "DDGs",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 1.07
+    },
+    {
+      "Alimentos": "F. Carne e ossos Bovino",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 0.9
+    },
+    {
+      "Alimentos": "Farinha de Vísceras",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 2.85
+    },
+    {
+      "Alimentos": "Farinha Sangue",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 2.65
+    },
+    {
+      "Alimentos": "Plasma Sanguíneo",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 3.0
+    },
+    {
+      "Alimentos": "Peixe. Farinha",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 2.25
+    },
+    {
+      "Alimentos": "F. Carne e Ossos Suínos",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 1.2
+    },
+    {
+      "Alimentos": "Milho. Grão",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 1.09
+    },
+    {
+      "Alimentos": "Sorgo. Grão",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 0.68
+    },
+    {
+      "Alimentos": "Aveia. Grão",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 2.0
+    },
+    {
+      "Alimentos": "Casquinha. Soja",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 1.4
+    },
+    {
+      "Alimentos": "Leite. Pó Soro",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 15.0
+    },
+    {
+      "Alimentos": "Milheto. Grão",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 0.6
+    },
+    {
+      "Alimentos": "Arroz. Quirera",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 1.3
+    },
+    {
+      "Alimentos": "Óleo. Soja",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 6.5
+    },
+    {
+      "Alimentos": "Gordura de Suínos",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 6.45
+    },
+    {
+      "Alimentos": "Lisina - HCl",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 15.3
+    },
+    {
+      "Alimentos": "Metionina",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 15.0
+    },
+    {
+      "Alimentos": "Treonina",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 18.0
+    },
+    {
+      "Alimentos": "Triptofano",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 30.0
+    },
+    {
+      "Alimentos": "Fosfato Bicalcico",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 7.0
+    },
+    {
+      "Alimentos": "Calcário Calcítico",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 3.16
+    },
+    {
+      "Alimentos": "Carbonato de Calcio",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 3.12
+    },
+    {
+      "Alimentos": "Sal Comum",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 1.0
+    },
+    {
+      "Alimentos": "Caulim",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 2.0
+    },
+    {
+      "Alimentos": "Premix mineral",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 7.0
+    },
+    {
+      "Alimentos": "Premix vitamínico",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 7.0
+    },
+    {
+      "Alimentos": "nenhum",
+      "Usar": true,
+      "Min_%": 0.0,
+      "Max_%": 100.0,
+      "Preco": 100.0
+    }
+  ],
+  "relatorio": {
+    "granja": "Minha Granja",
+    "produtor": "UFMS",
+    "nutricionista": "Renê",
+    "numero_formula": "1",
+    "lote_obs": "Só testando",
+    "observacoes": "Teste mesmo, para ter certeza que da certo."
+  }
+}
