@@ -7,9 +7,9 @@ from datetime import datetime
 
 def _cfg():
     url = os.environ.get("SUPABASE_URL", "").strip()
-    key = os.environ.get("SUPABASE_ANON_KEY", "").strip()
+    key = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
     if not url or not key:
-        raise RuntimeError("Faltam SUPABASE_URL e SUPABASE_ANON_KEY nas variáveis de ambiente.")
+        raise RuntimeError("Faltam SUPABASE_URL e SUPABASE_SERVICE_KEY nas variáveis de ambiente.")
     base = url.rstrip("/") + "/rest/v1"
     headers = {
         "apikey": key,
@@ -17,6 +17,7 @@ def _cfg():
         "Content-Type": "application/json",
     }
     return base, headers
+
 
 
 def save_run(payload: dict, df_res: pd.DataFrame) -> dict:
