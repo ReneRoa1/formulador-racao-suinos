@@ -13,10 +13,7 @@ from reporting import build_report_html, make_pdf_report
 from io_excel import load_planilha, build_ui_table
 from solver import extract_requirements, solve_lp, calc_dieta, build_results_table
 from pulp import LpStatus, value
-from pathlib import Path
-from history import HIST_DIR
-st.caption(f"📁 Pasta do histórico: {HIST_DIR}")
-st.caption(f"Arquivos .json encontrados: {len(list(Path(HIST_DIR).glob('*.json')))}")
+
 
 st.set_page_config(page_title="Formulador de Racao - Suinos", layout="wide")
 st.title("Formulador de Racao (Suinos) - Web")
@@ -238,3 +235,9 @@ else:
             file_name=f"relatorio_{run_id}.html",
             mime="text/html",
         )
+with st.expander("Diagnóstico (opcional)"):
+    from pathlib import Path
+    from history import HIST_DIR
+
+    st.caption(f"📁 Pasta do histórico: {HIST_DIR}")
+    st.caption(f"Arquivos .json encontrados: {len(list(Path(HIST_DIR).glob('*.json')))}")
