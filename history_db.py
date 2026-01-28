@@ -4,7 +4,6 @@ import pandas as pd
 import requests
 from datetime import datetime
 
-
 def _cfg():
     url = os.environ.get("SUPABASE_URL", "").strip()
     key = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
@@ -17,7 +16,6 @@ def _cfg():
         "Content-Type": "application/json",
     }
     return base, headers
-
 
 def save_run(payload: dict, df_res: pd.DataFrame) -> dict:
     base, headers = _cfg()
@@ -45,7 +43,6 @@ def save_run(payload: dict, df_res: pd.DataFrame) -> dict:
 
     return {"id": run_id}
 
-
 def list_runs() -> pd.DataFrame:
     base, headers = _cfg()
     r = requests.get(
@@ -61,7 +58,6 @@ def list_runs() -> pd.DataFrame:
     if df.empty:
         return pd.DataFrame(columns=["id", "data_hora", "fase", "custo_rs_kg", "created_at"])
     return df
-
 
 def load_run(run_id: str) -> dict:
     base, headers = _cfg()
