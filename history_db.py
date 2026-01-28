@@ -87,7 +87,7 @@ def list_runs():
         f"{base}/rest/v1/runs",
         headers=headers,
         params={
-            "select": "id,data_hora,fase,custo_R$_kg",
+            "select": "id,data_hora,fase,custo_R_kg",
             "order": "data_hora.desc",
         },
         timeout=30,
@@ -95,8 +95,11 @@ def list_runs():
     r.raise_for_status()
     data = r.json()
 
-    # garante sempre as colunas na ordem
-    return pd.DataFrame(data or [], columns=["id", "data_hora", "fase", "custo_R$_kg"])
+    return pd.DataFrame(
+        data or [],
+        columns=["id", "data_hora", "fase", "custo_R_kg"]  # ✅ igual ao banco
+    )
+
 
 
 def load_run(run_id: str) -> dict:
