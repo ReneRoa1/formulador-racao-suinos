@@ -7,7 +7,6 @@ st.set_page_config(page_title="Formulador de Racao - Suinos", layout="wide")
 import pandas as pd
 from datetime import datetime
 import streamlit.components.v1 as components
-
 from history_db import save_run, list_runs, load_run
 from reporting import build_report_html, make_pdf_report
 from io_excel import load_planilha, build_ui_table

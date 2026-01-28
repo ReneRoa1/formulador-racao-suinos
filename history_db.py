@@ -19,7 +19,6 @@ def _cfg():
     return base, headers
 
 
-
 def save_run(payload: dict, df_res: pd.DataFrame) -> dict:
     base, headers = _cfg()
 
@@ -49,7 +48,6 @@ def save_run(payload: dict, df_res: pd.DataFrame) -> dict:
 
 def list_runs() -> pd.DataFrame:
     base, headers = _cfg()
-    # select + ordena por created_at desc
     r = requests.get(
         f"{base}/runs?select=id,data_hora,fase,custo_rs_kg,created_at&order=created_at.desc&limit=200",
         headers=headers,
@@ -79,4 +77,3 @@ def load_run(run_id: str) -> dict:
     if not data:
         raise FileNotFoundError(f"ID não encontrado: {run_id}")
     return data[0]["payload"]
-
