@@ -14,9 +14,8 @@ from io_excel import load_planilha, build_ui_table
 from solver import extract_requirements, solve_lp, calc_dieta, build_results_table
 from pulp import LpStatus, value
 
-
-st.set_page_config(page_title="Formulador de Racao - Suinos", layout="wide")
 st.title("Formulador de Racao (Suinos) - Web")
+
 
 arquivo = st.file_uploader("Envie sua planilha .xlsx (abas: 'Alimentos' e 'Exigencias')", type=["xlsx"])
 if not arquivo:
