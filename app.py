@@ -139,7 +139,8 @@ if st.button("Formular (mínimo custo)"):
                        "Exigido_min":round(float(ee_lim),4),"Atende?":("OK" if ok else "NAO")})
 
     df_nut = pd.DataFrame(linhas)
-    st.dataframe(df_nut, use_container_width=True, hide_index=True)
+    df_nut = df_nut.where(pd.notnull(df_nut), None)  # ✅ troca NaN por None
+
 
     # -------- payload (AGORA sim, depois de linhas existir) --------
     payload = {
