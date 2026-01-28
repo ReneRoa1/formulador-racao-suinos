@@ -8,7 +8,7 @@ def _cfg():
     url = os.environ.get("SUPABASE_URL", "").strip()
     key = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
     if not url or not key:
-        raise RuntimeError("Faltam SUPABASE_URL e SUPABASE_SERVICE_KEY nas vari·veis de ambiente.")
+        raise RuntimeError("Faltam SUPABASE_URL e SUPABASE_SERVICE_KEY nas vari√°veis de ambiente.")
     base = url.rstrip("/") + "/rest/v1"
     headers = {
         "apikey": key,
@@ -71,5 +71,5 @@ def load_run(run_id: str) -> dict:
 
     data = r.json()
     if not data:
-        raise FileNotFoundError(f"ID n„o encontrado: {run_id}")
+        raise FileNotFoundError(f"ID n√£o encontrado: {run_id}")
     return data[0]["payload"]
