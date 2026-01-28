@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
+
+st.set_page_config(page_title="Formulador de Racao - Suinos", layout="wide")
+
+# AGORA vêm os outros imports
 import pandas as pd
 from datetime import datetime
 import streamlit.components.v1 as components
 
 from history import save_run, list_runs, load_run
 from reporting import build_report_html, make_pdf_report
-
 from io_excel import load_planilha, build_ui_table
 from solver import extract_requirements, solve_lp, calc_dieta, build_results_table
 from pulp import LpStatus, value
