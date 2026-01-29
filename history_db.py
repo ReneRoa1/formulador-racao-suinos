@@ -23,36 +23,44 @@ def _cfg():
 
 
 def _sanitize(obj):
+    """Converte qualquer coisa para JSON-safe."""
+
+    import math
+    import numpy as np
+    import pandas as pd
+    from datetime import datetime, date
+
     if obj is None:
         return None
-    if isinstance(obj, float):
-        if math.isnan(obj) or math.isinf(obj):
-            return None
-        return obj
-    try:
-        import numpy as np
-        if isinstance(obj, np.floating):
-            v = float(obj)
-            if math.isnan(v) or math.isinf(v):
-                return None
-            return v
-        if isinstance(obj, np.integer):
-            return int(obj)
-    except Exception:
-        pass
 
-    if isinstance(obj, dict):
-        return {k: _sanitize(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_sanitize(v) for v in obj]
-    return obj
     # pandas Timestamp
     if isinstance(obj, pd.Timestamp):
         return obj.isoformat()
 
-    # datetime/date do Python
+    # datetime/date
     if isinstance(obj, (datetime, date)):
         return obj.isoformat()
+
+    # floats problemáticos
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+
+    # numpy numbers
+    if isinstance(obj, (np.floating, np.integer)):
+        return _sanitize(obj.item())
+
+    # dict
+    if isinstance(obj, dict):
+        return {k: _sanitize(v) for k, v in obj.items()}
+
+    # list/tuple
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize(v) for v in obj]
+
+    return obj
+
 
 
 from datetime import datetime
@@ -68,10 +76,10 @@ def save_run(payload: dict, df_res=None) -> dict:
 
     row = {
     "id": str(uuid.uuid4()),  # <- evita NULL
-    "data_hora": payload2.get("data_hora") or datetime.now().isoformat(),
+    "data_hora": payload2.get("data_hora"),
     "fase": payload2.get("fase"),
-    "custo_R_kg": custo_r_kg,
-    "payload": payload2,
+    "custo_R_kg": payload2.get("custo_R_kg"),
+    "payload": payload2   # SALVA TUDO AQUI
     }
 
     r = requests.post(
