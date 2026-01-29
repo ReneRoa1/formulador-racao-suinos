@@ -207,6 +207,10 @@ if st.button("Formular (mínimo custo)"):
         "exigencias_min": req_min,
     }
 
+    # ✅ habilita salvar/relatório depois de formular
+    st.session_state["last_payload"] = payload
+    st.session_state["last_df_res"] = df_res
+    st.success("Formulação pronta! Agora você pode salvar no histórico e baixar o relatório abaixo.")
 
 
 st.divider()
