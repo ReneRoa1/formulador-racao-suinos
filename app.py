@@ -175,44 +175,39 @@ if st.button("Formular (mínimo custo)"):
     st.write("DEBUG exigencia_escolhida:", exigencia_escolhida)
 
 
-    # -------- payload (AGORA sim, depois de linhas existir) --------
-payload = {
-    "data_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+      # -------- payload (AGORA sim, depois de linhas existir) --------
+    payload = {
+        "data_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "exigencia": exigencia_escolhida,  # <-- ESSENCIAL
+        "fase": fase,
+        "custo_R_kg": round(custo, 6),
+        "custo_R_ton": round(custo * 1000, 2),
 
-    # 🔹 NOVO: salvar também o grupo de exigência
-     "exigencia": exigencia_escolhida,   # <-- ESSENCIAL
+        "fb_max": fb_lim if fb_lim is not None else None,
+        "ee_max": ee_lim if ee_lim is not None else None,
 
-    "fase": fase,
-    "custo_R_kg": round(custo, 6),
-    "custo_R_ton": round(custo * 1000, 2),
+        # dieta final
+        "ingredientes": df_res.to_dict(orient="records"),
+        "nutrientes": df_nut.to_dict(orient="records"),
 
-    "fb_max": fb_lim if fb_lim is not None else None,
-    "ee_max": ee_lim if ee_lim is not None else None,
+        # config usada
+        "ingredientes_config": edited[["Alimentos", "Usar", "Min_%", "Max_%", "Preco"]].to_dict(orient="records"),
 
-    # 🔹 dieta final
-    "ingredientes": df_res.to_dict(orient="records"),
-    "nutrientes": df_nut.to_dict(orient="records"),
+        # dados de identificação do relatório
+        "relatorio": {
+            "granja": granja,
+            "produtor": produtor,
+            "nutricionista": nutricionista,
+            "numero_formula": numero_formula,
+            "lote_obs": lote_obs,
+            "observacoes": observacoes,
+        },
 
-    # 🔹 config usada
-    "ingredientes_config": edited[["Alimentos","Usar","Min_%","Max_%","Preco"]]
-        .to_dict(orient="records"),
+        # exigências mínimas usadas
+        "exigencias_min": req_min,
+    }
 
-    # 🔹 dados de identificação do relatório
-    "relatorio": {
-        "granja": granja,
-        "produtor": produtor,
-        "nutricionista": nutricionista,
-        "numero_formula": numero_formula,
-        "lote_obs": lote_obs,
-        "observacoes": observacoes,
-    },
 
-    # 🔹 NOVO: salvar as exigências mínimas usadas (para o relatório salvo)
-    "exigencias_min": req_min,
-}
-
-st.session_state["last_payload"] = payload
-st.session_state["last_df_res"] = df_res
 
 st.divider()
 st.subheader("Salvar / Relatório")
