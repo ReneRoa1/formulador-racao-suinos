@@ -1,9 +1,29 @@
 # -*- coding: utf-8 -*-
-import os
 import math
-import requests
-import pandas as pd
+import os
 from datetime import datetime
+
+import pandas as pd
+import requests
+
+
+def _cfg():
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
+
+    if not url or not key:
+        raise RuntimeError(
+            "Missing SUPABASE_URL and/or SUPABASE_KEY (or SUPABASE_ANON_KEY) environment variables."
+        )
+
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    return url, headers
+
 
 def _sanitize(obj):
     if obj is None:
@@ -15,6 +35,7 @@ def _sanitize(obj):
 
     try:
         import numpy as np
+
         if isinstance(obj, (np.floating,)):
             v = float(obj)
             if math.isnan(v) or math.isinf(v):
@@ -28,7 +49,13 @@ def _sanitize(obj):
     if isinstance(obj, dict):
         return {k: _sanitize(v) for k, v in obj.items()}
     if isinstance(obj, list):
-@@ -49,25 +50,82 @@ def save_run(payload: dict, df_res=None):
+        return [_sanitize(v) for v in obj]
+
+    return obj
+
+
+def save_run(payload: dict, df_res=None):
+    base, headers = _cfg()
     payload2 = _sanitize(payload)
 
     # id simples (string) pra bater com a tabela que sugeri
@@ -54,60 +81,3 @@ def _sanitize(obj):
         raise RuntimeError(f"Supabase insert failed: {r.status_code} - {r.text}")
 
     return r.json()[0]
-
-
-def list_runs() -> pd.DataFrame:
-    base, headers = _cfg()
-    params = {
-        "select": "id,data_hora,fase,custo_R_kg",
-        "order": "data_hora.desc",
-    }
-    r = requests.get(
-        f"{base}/rest/v1/runs",
-        headers=headers,
-        params=params,
-        timeout=30,
-    )
-
-    if not r.ok:
-        raise RuntimeError(f"Supabase list failed: {r.status_code} - {r.text}")
-
-    rows = []
-    for item in r.json():
-        rows.append(
-            {
-                "id": item.get("id"),
-                "data_hora": item.get("data_hora"),
-                "fase": item.get("fase"),
-                "custo_R$_kg": item.get("custo_R_kg"),
-            }
-        )
-
-    if not rows:
-        return pd.DataFrame(columns=["id", "data_hora", "fase", "custo_R$_kg"])
-    return pd.DataFrame(rows)
-
-
-def load_run(run_id: str) -> dict:
-    base, headers = _cfg()
-    params = {
-        "select": "payload",
-        "id": f"eq.{run_id}",
-        "limit": 1,
-    }
-    r = requests.get(
-        f"{base}/rest/v1/runs",
-        headers=headers,
-        params=params,
-        timeout=30,
-    )
-
-    if not r.ok:
-        raise RuntimeError(f"Supabase load failed: {r.status_code} - {r.text}")
-
-    data = r.json()
-    if not data:
-        raise RuntimeError(f"Run id not found: {run_id}")
-
-    payload = data[0].get("payload")
-    return payload if payload is not None else data[0]
