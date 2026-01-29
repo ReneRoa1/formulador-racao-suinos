@@ -15,10 +15,26 @@ def build_report_html(payload: dict) -> str:
     numero_formula = rel.get("numero_formula", "")
     lote_obs = rel.get("lote_obs", "")
     observacoes = rel.get("observacoes", "")
+
+    exigencia = payload.get("exigencia", "")
     fase = payload.get("fase", "")
     data_hora = payload.get("data_hora", "")
-    custo_kg = payload.get("custo_R$_kg", "")
-    custo_ton = payload.get("custo_R$_ton", "")
+
+    # custo: usa novo padrão, mas aceita o antigo se existir
+    custo_kg = payload.get("custo_R_kg", payload.get("custo_R$_kg", ""))
+    custo_ton = payload.get("custo_R_ton", payload.get("custo_R$_ton", ""))
+
+    def _fmt_num(v, ndigits: int) -> str:
+        try:
+            if v is None or v == "":
+                return ""
+            return f"{float(v):.{ndigits}f}"
+        except Exception:
+            return str(v)
+
+    custo_kg_txt = _fmt_num(custo_kg, 4)
+    custo_ton_txt = _fmt_num(custo_ton, 2)
+
     fb_max = payload.get("fb_max")
     ee_max = payload.get("ee_max")
 
@@ -41,8 +57,6 @@ def build_report_html(payload: dict) -> str:
 
     # --- Nutrientes: aplica cor no "Atende?" ---
     df_nut_html = df_to_html(df_nut)
-
-    # Injeta classes CSS no texto "OK"/"NAO" dentro da tabela (simples e funciona)
     df_nut_html = df_nut_html.replace(">OK<", '><span class="ok">OK</span><')
     df_nut_html = df_nut_html.replace(">NAO<", '><span class="nao">NAO</span><')
 
@@ -148,22 +162,24 @@ def build_report_html(payload: dict) -> str:
 </head>
 <body>
   <h1>Relatório de Formulação (Suínos)</h1>
+
   <div class="card">
-  <h3>Identificação</h3>
-  <div class="meta">
-    <div><b>Granja/Empresa:</b> {granja}</div>
-    <div><b>Produtor/Responsável:</b> {produtor}</div>
-    <div><b>Nutricionista/Técnico:</b> {nutricionista}</div>
-    <div><b>Nº da fórmula:</b> {numero_formula}</div>
-    <div><b>Lote/Obs:</b> {lote_obs}</div>
+    <h3>Identificação</h3>
+    <div class="meta">
+      <div><b>Granja/Empresa:</b> {granja}</div>
+      <div><b>Produtor/Responsável:</b> {produtor}</div>
+      <div><b>Nutricionista/Técnico:</b> {nutricionista}</div>
+      <div><b>Nº da fórmula:</b> {numero_formula}</div>
+      <div><b>Lote/Obs:</b> {lote_obs}</div>
+    </div>
+    {"<p style='margin-top:10px; white-space: pre-wrap;'><b>Observações:</b><br>" + observacoes + "</p>" if observacoes else ""}
   </div>
-  {"<p style='margin-top:10px; white-space: pre-wrap;'><b>Observações:</b><br>" + observacoes + "</p>" if observacoes else ""}
-</div>
 
   <div class="meta">
     <div><b>Data/Hora:</b> {data_hora}</div>
+    <div><b>Exigência:</b> {exigencia}</div>
     <div><b>Fase:</b> {fase}</div>
-    <div><b>Custo:</b> R$ {custo_kg}/kg &nbsp; | &nbsp; R$ {custo_ton}/ton</div>
+    <div><b>Custo:</b> R$ {custo_kg_txt}/kg &nbsp; | &nbsp; R$ {custo_ton_txt}/ton</div>
     <div><b>Limites opcionais:</b> {extras_txt}</div>
   </div>
 
@@ -200,6 +216,14 @@ def make_pdf_report(payload: dict) -> bytes:
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
+    def _fmt(v, nd):
+        try:
+            if v is None or v == "":
+                return ""
+            return f"{float(v):.{nd}f}"
+        except Exception:
+            return str(v)
+
     y = height - 40
     c.setFont("Helvetica-Bold", 14)
     c.drawString(40, y, "Relatório de Formulação (Suínos)")
@@ -208,9 +232,14 @@ def make_pdf_report(payload: dict) -> bytes:
     c.setFont("Helvetica", 10)
     c.drawString(40, y, f"Data/Hora: {payload.get('data_hora','')}")
     y -= 14
+    c.drawString(40, y, f"Exigência: {payload.get('exigencia','')}")
+    y -= 14
     c.drawString(40, y, f"Fase: {payload.get('fase','')}")
     y -= 14
-    c.drawString(40, y, f"Custo: R$ {payload.get('custo_R$_kg','')}/kg | R$ {payload.get('custo_R$_ton','')}/ton")
+
+    custo_kg = payload.get("custo_R_kg", payload.get("custo_R$_kg", ""))
+    custo_ton = payload.get("custo_R_ton", payload.get("custo_R$_ton", ""))
+    c.drawString(40, y, f"Custo: R$ {_fmt(custo_kg,4)}/kg | R$ {_fmt(custo_ton,2)}/ton")
     y -= 20
 
     c.setFont("Helvetica-Bold", 11)
