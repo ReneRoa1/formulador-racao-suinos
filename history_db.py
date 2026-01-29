@@ -46,6 +46,13 @@ def _sanitize(obj):
     if isinstance(obj, list):
         return [_sanitize(v) for v in obj]
     return obj
+    # pandas Timestamp
+    if isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+
+    # datetime/date do Python
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
 
 
 from datetime import datetime
