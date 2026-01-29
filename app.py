@@ -146,8 +146,8 @@ if st.button("Formular (mínimo custo)"):
     payload = {
         "data_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "fase": fase,
-        "custo_R$_kg": round(custo, 6),
-        "custo_R$_ton": round(custo * 1000, 2),
+        "custo_R_kg": round(custo, 6),
+        "custo_R_ton": round(custo * 1000, 2),
         "fb_max": fb_lim if fb_lim is not None else None,
         "ee_max": ee_lim if ee_lim is not None else None,
         "ingredientes": df_res.to_dict(orient="records"),
