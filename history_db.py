@@ -46,19 +46,38 @@ def _sanitize(obj):
     return obj
 
 
+from datetime import datetime
+
 def save_run(payload: dict, df_res=None) -> dict:
     base, headers = _cfg()
     payload2 = _sanitize(payload)
 
+    # pega custo de onde estiver (ajuste se seu payload usa outro nome)
+    custo_r_kg = payload2.get("custo_R_kg")
+    if custo_r_kg is None:
+        custo_r_kg = payload2.get("custo_R$_kg")  # fallback se ainda existir no app
+
+    row = {
+        "data_hora": payload2.get("data_hora") or datetime.now().isoformat(),
+        "fase": payload2.get("fase"),
+        "custo_R_kg": custo_r_kg,
+        "payload": payload2,  # aqui vai tudo
+    }
+
     r = requests.post(
         f"{base}/rest/v1/runs",
         headers=headers,
-        json=payload2,
+        json=row,
         timeout=30,
     )
-    r.raise_for_status()
+
+    if not r.ok:
+        raise RuntimeError(f"Supabase insert falhou ({r.status_code}). Resposta: {r.text}")
+
     data = r.json()
     return data[0] if isinstance(data, list) and data else data
+
+
 
 
 def list_runs() -> pd.DataFrame:
@@ -68,14 +87,14 @@ def list_runs() -> pd.DataFrame:
         f"{base}/rest/v1/runs",
         headers=headers,
         params={
-            "select": "id,data_hora,fase,custo_R$_kg",
+            "select": "id,data_hora,fase,custo_r_kg",
             "order": "data_hora.desc",
         },
         timeout=30,
     )
     r.raise_for_status()
     data = r.json() or []
-    return pd.DataFrame(data, columns=["id", "data_hora", "fase", "custo_R$_kg"])
+    return pd.DataFrame(data, columns=["id", "data_hora", "fase", "custo_r_kg"])
 
 
 def load_run(run_id: str) -> dict:
