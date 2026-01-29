@@ -55,7 +55,13 @@ def _sanitize(obj):
 
 
 def save_run(payload: dict, df_res=None):
-    base, headers = _cfg()
+        try:
+        base, headers = _cfg()
+    except RuntimeError:
+        from history import save_run as local_save_run
+
+        return local_save_run(payload, df_res)
+
     payload2 = _sanitize(payload)
 
     # id simples (string) pra bater com a tabela que sugeri
@@ -81,3 +87,57 @@ def save_run(payload: dict, df_res=None):
         raise RuntimeError(f"Supabase insert failed: {r.status_code} - {r.text}")
 
     return r.json()[0]
+
+
+def list_runs() -> pd.DataFrame:
+    try:
+        base, headers = _cfg()
+    except RuntimeError:
+        from history import list_runs as local_list_runs
+
+        return local_list_runs()
+
+    r = requests.get(
+        f"{base}/rest/v1/runs?select=id,data_hora,fase,custo_R_kg&order=data_hora.desc",
+        headers=headers,
+        timeout=30,
+    )
+
+    if not r.ok:
+        raise RuntimeError(f"Supabase list failed: {r.status_code} - {r.text}")
+
+    rows = r.json()
+    if not rows:
+        return pd.DataFrame(columns=["id", "data_hora", "fase", "custo_R$_kg"])
+
+    df = pd.DataFrame(rows)
+    df = df.rename(columns={"custo_R_kg": "custo_R$_kg"})
+    return df[["id", "data_hora", "fase", "custo_R$_kg"]]
+
+
+def load_run(run_id: str) -> dict:
+    try:
+        base, headers = _cfg()
+    except RuntimeError:
+        from history import load_run as local_load_run
+
+        return local_load_run(run_id)
+
+    r = requests.get(
+        f"{base}/rest/v1/runs?select=payload&id=eq.{run_id}&limit=1",
+        headers=headers,
+        timeout=30,
+    )
+
+    if not r.ok:
+        raise RuntimeError(f"Supabase load failed: {r.status_code} - {r.text}")
+
+    rows = r.json()
+    if not rows:
+        raise ValueError(f"Run not found: {run_id}")
+
+    payload = rows[0].get("payload")
+    if payload is None:
+        return rows[0]
+
+    return payload
