@@ -2,6 +2,7 @@
 import os
 import math
 import requests
+import pandas as pd
 from datetime import datetime
 
 def _sanitize(obj):
@@ -27,25 +28,7 @@ def _sanitize(obj):
     if isinstance(obj, dict):
         return {k: _sanitize(v) for k, v in obj.items()}
     if isinstance(obj, list):
-        return [_sanitize(v) for v in obj]
-    return obj
-
-def _cfg():
-    base = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_SERVICE_KEY")
-    if not base or not key:
-        raise RuntimeError("Faltam SUPABASE_URL e SUPABASE_SERVICE_KEY nas variáveis de ambiente.")
-
-    headers = {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        "Prefer": "return=representation",
-    }
-    return base, headers
-
-def save_run(payload: dict, df_res=None):
-    base, headers = _cfg()
+@@ -49,25 +50,82 @@ def save_run(payload: dict, df_res=None):
     payload2 = _sanitize(payload)
 
     # id simples (string) pra bater com a tabela que sugeri
@@ -71,3 +54,60 @@ def save_run(payload: dict, df_res=None):
         raise RuntimeError(f"Supabase insert failed: {r.status_code} - {r.text}")
 
     return r.json()[0]
+
+
+def list_runs() -> pd.DataFrame:
+    base, headers = _cfg()
+    params = {
+        "select": "id,data_hora,fase,custo_R_kg",
+        "order": "data_hora.desc",
+    }
+    r = requests.get(
+        f"{base}/rest/v1/runs",
+        headers=headers,
+        params=params,
+        timeout=30,
+    )
+
+    if not r.ok:
+        raise RuntimeError(f"Supabase list failed: {r.status_code} - {r.text}")
+
+    rows = []
+    for item in r.json():
+        rows.append(
+            {
+                "id": item.get("id"),
+                "data_hora": item.get("data_hora"),
+                "fase": item.get("fase"),
+                "custo_R$_kg": item.get("custo_R_kg"),
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame(columns=["id", "data_hora", "fase", "custo_R$_kg"])
+    return pd.DataFrame(rows)
+
+
+def load_run(run_id: str) -> dict:
+    base, headers = _cfg()
+    params = {
+        "select": "payload",
+        "id": f"eq.{run_id}",
+        "limit": 1,
+    }
+    r = requests.get(
+        f"{base}/rest/v1/runs",
+        headers=headers,
+        params=params,
+        timeout=30,
+    )
+
+    if not r.ok:
+        raise RuntimeError(f"Supabase load failed: {r.status_code} - {r.text}")
+
+    data = r.json()
+    if not data:
+        raise RuntimeError(f"Run id not found: {run_id}")
+
+    payload = data[0].get("payload")
+    return payload if payload is not None else data[0]
