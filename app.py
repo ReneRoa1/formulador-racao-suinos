@@ -24,12 +24,44 @@ if not arquivo:
 df_food, df_req = load_planilha(arquivo)
 
 col1, col2 = st.columns([2, 1])
+
+# 🔹 Preenche a coluna Exigencia para baixo (planilha vem em blocos)
+df_req = df_req.copy()
+df_req["Exigencia"] = df_req["Exigencia"].ffill()
+
 with col1:
-    fase = st.selectbox("Escolha a fase (suínos)", df_req["Fase"].tolist())
+    # 1️⃣ Escolher o grupo de exigência
+    exigencias = df_req["Exigencia"].dropna().unique().tolist()
+    exigencia_escolhida = st.selectbox("Escolha o tipo de exigência", exigencias)
+
+    # 2️⃣ Mostrar apenas fases desse grupo
+    fases_filtradas = (
+        df_req[df_req["Exigencia"] == exigencia_escolhida]["Fase"]
+        .dropna()
+        .unique()
+        .tolist()
+    )
+
+    fase = st.selectbox("Escolha a fase (suínos)", fases_filtradas)
+
 with col2:
     st.caption("Energia usada: **EM (Suínos)**")
 
-req_min = extract_requirements(df_req, fase)
+def extract_requirements(df_req, exigencia, fase):
+    row = df_req[
+        (df_req["Exigencia"] == exigencia) &
+        (df_req["Fase"] == fase)
+    ]
+
+    if row.empty:
+        raise ValueError("Exigência não encontrada para essa combinação.")
+
+    return row.iloc[0].to_dict()
+
+# 🔹 Agora a exigência é buscada por Exigencia + Fase
+req_min = extract_requirements(df_req, exigencia_escolhida, fase)
+
+
 
 st.subheader("1) Selecione ingredientes + defina Min%/Max%")
 tabela = build_ui_table(df_food)
