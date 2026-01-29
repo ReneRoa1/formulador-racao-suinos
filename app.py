@@ -233,6 +233,7 @@ else:
             data=html.encode("utf-8"),
             file_name=f"relatorio_{run_id}.html",
             mime="text/html",
+
         )
 with st.expander("Diagnóstico (opcional)"):
     from pathlib import Path

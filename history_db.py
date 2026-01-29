@@ -90,14 +90,17 @@ def list_runs() -> pd.DataFrame:
         f"{base}/rest/v1/runs",
         headers=headers,
         params={
-            "select": "id,data_hora,fase,custo_R_kg",
+            "select": "id,data_hora,fase,custo_R_kg,payload",
             "order": "data_hora.desc",
         },
         timeout=30,
     )
     r.raise_for_status()
     data = r.json() or []
-    return pd.DataFrame(data, columns=["id", "data_hora", "fase", "custo_R_kg"])
+
+    # Se você não quer mostrar payload na tabela, dá pra omitir na view depois.
+    return pd.DataFrame(data)
+
 
 
 def load_run(run_id: str) -> dict:
@@ -107,12 +110,43 @@ def load_run(run_id: str) -> dict:
         f"{base}/rest/v1/runs",
         headers=headers,
         params={
+            "select": "id,data_hora,fase,custo_R_kg,payload",
             "id": f"eq.{run_id}",
-            "select": "*",
-            "limit": 1,
+            "limit": "1",
         },
         timeout=30,
     )
     r.raise_for_status()
-    data = r.json() or []
-    return data[0] if data else {}
+
+    rows = r.json() or []
+    if not rows:
+        raise RuntimeError(f"ID {run_id} não encontrado no Supabase.")
+
+    row = rows[0]
+    payload = row.get("payload") or {}
+
+    # opcional: garantir campos topo no payload
+    payload["id"] = row.get("id")
+    payload["data_hora"] = row.get("data_hora")
+    payload["fase"] = row.get("fase")
+    payload["custo_R_kg"] = row.get("custo_R_kg")
+
+    return payload
+
+
+def get_run(run_id: str) -> dict | None:
+    base, headers = _cfg()
+
+    r = requests.get(
+        f"{base}/rest/v1/runs",
+        headers=headers,
+        params={
+            "select": "id,data_hora,fase,custo_R_kg,payload",
+            "id": f"eq.{run_id}",
+            "limit": "1",
+        },
+        timeout=30,
+    )
+    r.raise_for_status()
+    rows = r.json() or []
+    return rows[0] if rows else None
