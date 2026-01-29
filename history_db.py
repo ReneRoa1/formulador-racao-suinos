@@ -3,6 +3,8 @@ import os
 import math
 import requests
 import pandas as pd
+import uuid
+from datetime import datetime
 
 
 def _cfg():
@@ -58,10 +60,11 @@ def save_run(payload: dict, df_res=None) -> dict:
         custo_r_kg = payload2.get("custo_R$_kg")  # fallback se ainda existir no app
 
     row = {
-        "data_hora": payload2.get("data_hora") or datetime.now().isoformat(),
-        "fase": payload2.get("fase"),
-        "custo_R_kg": custo_r_kg,
-        "payload": payload2,  # aqui vai tudo
+    "id": str(uuid.uuid4()),  # <- evita NULL
+    "data_hora": payload2.get("data_hora") or datetime.now().isoformat(),
+    "fase": payload2.get("fase"),
+    "custo_R_kg": custo_r_kg,
+    "payload": payload2,
     }
 
     r = requests.post(
@@ -87,14 +90,14 @@ def list_runs() -> pd.DataFrame:
         f"{base}/rest/v1/runs",
         headers=headers,
         params={
-            "select": "id,data_hora,fase,custo_r_kg",
+            "select": "id,data_hora,fase,custo_R_kg",
             "order": "data_hora.desc",
         },
         timeout=30,
     )
     r.raise_for_status()
     data = r.json() or []
-    return pd.DataFrame(data, columns=["id", "data_hora", "fase", "custo_r_kg"])
+    return pd.DataFrame(data, columns=["id", "data_hora", "fase", "custo_R_kg"])
 
 
 def load_run(run_id: str) -> dict:
