@@ -63,23 +63,23 @@ def _sanitize(obj):
 
 
 
-from datetime import datetime
 
 def save_run(payload: dict, df_res=None) -> dict:
     base, headers = _cfg()
     payload2 = _sanitize(payload)
 
-    # pega custo de onde estiver (ajuste se seu payload usa outro nome)
+    # pega custo de onde estiver (fallback)
     custo_r_kg = payload2.get("custo_R_kg")
     if custo_r_kg is None:
-        custo_r_kg = payload2.get("custo_R$_kg")  # fallback se ainda existir no app
+        custo_r_kg = payload2.get("custo_R$_kg")
 
     row = {
-    "id": str(uuid.uuid4()),  # <- evita NULL
-    "data_hora": payload2.get("data_hora"),
-    "fase": payload2.get("fase"),
-    "custo_R_kg": payload2.get("custo_R_kg"),
-    "payload": payload2   # SALVA TUDO AQUI
+        "id": str(uuid.uuid4()),  # evita NULL
+        "codigo": payload2.get("codigo"),
+        "data_hora": payload2.get("data_hora"),
+        "fase": payload2.get("fase"),
+        "custo_R_kg": custo_r_kg,
+        "payload": payload2,
     }
 
     r = requests.post(
@@ -98,6 +98,7 @@ def save_run(payload: dict, df_res=None) -> dict:
 
 
 
+
 def list_runs() -> pd.DataFrame:
     base, headers = _cfg()
 
@@ -105,7 +106,7 @@ def list_runs() -> pd.DataFrame:
         f"{base}/rest/v1/runs",
         headers=headers,
         params={
-            "select": "id,data_hora,fase,custo_R_kg,payload",
+            "select": "id,codigo,data_hora,fase,custo_r_kg,payload",
             "order": "data_hora.desc",
         },
         timeout=30,
@@ -125,7 +126,7 @@ def load_run(run_id: str) -> dict:
         f"{base}/rest/v1/runs",
         headers=headers,
         params={
-            "select": "id,data_hora,fase,custo_R_kg,payload",
+            "select": "id,codigo,data_hora,fase,custo_R_kg,payload",
             "id": f"eq.{run_id}",
             "limit": "1",
         },
@@ -140,13 +141,14 @@ def load_run(run_id: str) -> dict:
     row = rows[0]
     payload = row.get("payload") or {}
 
-    # opcional: garantir campos topo no payload
     payload["id"] = row.get("id")
+    payload["codigo"] = row.get("codigo")
     payload["data_hora"] = row.get("data_hora")
     payload["fase"] = row.get("fase")
     payload["custo_R_kg"] = row.get("custo_R_kg")
 
     return payload
+
 
 
 def get_run(run_id: str) -> dict | None:
@@ -156,7 +158,7 @@ def get_run(run_id: str) -> dict | None:
         f"{base}/rest/v1/runs",
         headers=headers,
         params={
-            "select": "id,data_hora,fase,custo_R_kg,payload",
+            "select": "id,data_hora,fase,custo_r_kg,payload",
             "id": f"eq.{run_id}",
             "limit": "1",
         },
