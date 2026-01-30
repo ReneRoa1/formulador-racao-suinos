@@ -106,11 +106,11 @@ with r5:
     lote_obs = st.text_input("Lote / Observação curta (opcional)", value="")
 
 observacoes = st.text_area("Observações (opcional)", value="", height=90)
-numero_formula = st.text_input("Nº da fórmula (opcional)", value="")
 
 codigo_formula = numero_formula.strip()
 if not codigo_formula:
     codigo_formula = datetime.now().strftime("FORM-%Y%m%d-%H%M%S")
+
 
 st.subheader("3) Formular")
 if st.button("Formular (mínimo custo)"):
