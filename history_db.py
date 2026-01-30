@@ -106,11 +106,13 @@ def list_runs() -> pd.DataFrame:
         f"{base}/rest/v1/runs",
         headers=headers,
         params={
-            "select": "id,codigo,data_hora,fase,custo_r_kg,payload",
-            "order": "data_hora.desc",
+            "select": "id,codigo,data_hora,fase,custo_R_kg,payload",
+            "order": "id.desc",  # <<< MUDOU AQUI
         },
         timeout=30,
     )
+
+    
     r.raise_for_status()
     data = r.json() or []
 
