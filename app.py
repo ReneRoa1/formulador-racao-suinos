@@ -10,7 +10,7 @@ import streamlit.components.v1 as components
 from history_db import save_run, list_runs, load_run
 from reporting import build_report_html, make_pdf_report
 from io_excel import load_planilha, build_ui_table
-from solver import extract_requirements, solve_lp, calc_dieta, build_results_table
+from solver import extract_requirements, solve_lp, calc_dieta, build_results_table, get_shadow_prices
 from pulp import LpStatus, value
 from catalog_db import (
     fetch_foods, fetch_requirements,
@@ -98,12 +98,6 @@ def get_req_row(df_req: pd.DataFrame, exigencia: str, fase: str) -> dict:
         raise ValueError("Exigência não encontrada para essa combinação.")
     return row.iloc[0].to_dict()
 
-
-
-    if row.empty:
-        raise ValueError("Exigência não encontrada para essa combinação.")
-
-    return row.iloc[0].to_dict()
 
 # 🔹 Agora a exigência é buscada por Exigencia + Fase
 req_min = get_req_row(df_req, exigencia_escolhida, fase)
@@ -194,7 +188,6 @@ if st.button("Formular (mínimo custo)"):
     st.success(f"Custo (R$/kg): {custo:.4f}  |  Custo (R$/ton): {custo*1000:.2f}")
     st.subheader("Inclusão de ingredientes")
     st.dataframe(df_res, use_container_width=True, hide_index=True)
-    from solver import get_shadow_prices
 
     st.markdown("---")
     st.subheader("📊 Análise de Sensibilidade — Preço-Sombra")
