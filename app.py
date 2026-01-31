@@ -12,18 +12,57 @@ from reporting import build_report_html, make_pdf_report
 from io_excel import load_planilha, build_ui_table
 from solver import extract_requirements, solve_lp, calc_dieta, build_results_table
 from pulp import LpStatus, value
+from catalog_db import (
+    fetch_foods, fetch_requirements,
+    import_foods_from_df, import_requirements_from_df,
+    foods_to_df_for_solver, requirements_to_df_for_ui
+)
 
 st.title("Formulador de Racao (Suinos) - Web")
 
+usar_banco = st.toggle("Usar dados do banco (Supabase)", value=True)
 
-arquivo = st.file_uploader("Envie sua planilha .xlsx (abas: 'Alimentos' e 'Exigencias')", type=["xlsx"])
-if not arquivo:
-    st.info("Envie a planilha para começar.")
+df_food = pd.DataFrame()
+df_req = pd.DataFrame()
+
+if usar_banco:
+    try:
+        df_food_db = fetch_foods()
+        df_req_db = fetch_requirements()
+
+        if not df_food_db.empty and not df_req_db.empty:
+            df_food = foods_to_df_for_solver(df_food_db)
+            df_req = requirements_to_df_for_ui(df_req_db)
+            st.success("Dados carregados do banco com sucesso ✅")
+        else:
+            st.warning("Banco vazio. Envie a planilha para importar e começar.")
+            usar_banco = False
+    except Exception as e:
+        st.warning(f"Não consegui ler do banco agora: {e}")
+        usar_banco = False
+
+if not usar_banco:
+    arquivo = st.file_uploader("Envie sua planilha .xlsx (abas: 'Alimentos' e 'Exigencias')", type=["xlsx"])
+    if not arquivo:
+        st.info("Envie a planilha para começar.")
+        st.stop()
+
+    df_food, df_req = load_planilha(arquivo)
+if df_req.empty:
+    st.error("Não há exigências carregadas (banco/excel).")
     st.stop()
-
-df_food, df_req = load_planilha(arquivo)
+    # botão de importar pro banco
+    if st.button("Importar planilha para o banco (Supabase)"):
+        n1 = import_foods_from_df(df_food)
+        n2 = import_requirements_from_df(df_req)
+        st.success(f"Importado para o banco ✅ Foods: {n1} | Requirements: {n2}")
+        st.rerun()
 
 col1, col2 = st.columns([2, 1])
+
+if df_req.empty or "Exigencia" not in df_req.columns or "Fase" not in df_req.columns:
+    st.error("Exigências não carregadas corretamente. Verifique banco/planilha.")
+    st.stop()
 
 # 🔹 Preenche a coluna Exigencia para baixo (planilha vem em blocos)
 df_req = df_req.copy()
@@ -47,11 +86,12 @@ with col1:
 with col2:
     st.caption("Energia usada: **EM (Suínos)**")
 
-def extract_requirements(df_req, exigencia, fase):
-    row = df_req[
-        (df_req["Exigencia"] == exigencia) &
-        (df_req["Fase"] == fase)
-    ]
+def get_req_row(df_req: pd.DataFrame, exigencia: str, fase: str) -> dict:
+    row = df_req[(df_req["Exigencia"] == exigencia) & (df_req["Fase"] == fase)]
+    if row.empty:
+        raise ValueError("Exigência não encontrada para essa combinação.")
+    return row.iloc[0].to_dict()
+
 
     if row.empty:
         raise ValueError("Exigência não encontrada para essa combinação.")
@@ -59,7 +99,8 @@ def extract_requirements(df_req, exigencia, fase):
     return row.iloc[0].to_dict()
 
 # 🔹 Agora a exigência é buscada por Exigencia + Fase
-req_min = extract_requirements(df_req, exigencia_escolhida, fase)
+req_min = get_req_row(df_req, exigencia_escolhida, fase)
+
 
 
 
@@ -221,65 +262,55 @@ if st.button("Formular (mínimo custo)"):
 
 
 st.divider()
-st.subheader("Salvar / Relatório")
-
-c1, c2, c3 = st.columns(3)
-
-if "last_payload" not in st.session_state:
-    st.info("Faça uma formulação para habilitar salvar e gerar relatório.")
-else:
-    payload_last = st.session_state["last_payload"]
-    df_last = st.session_state["last_df_res"]
-
-    with c1:
-        if st.button("Salvar no histórico"):
-            meta = save_run(payload_last, df_last)
-            st.session_state["last_saved_id"] = meta["id"]
-            st.rerun()
-
-    with c2:
-        html = build_report_html(payload_last)
-        st.download_button(
-            "Baixar relatório (HTML)",
-            data=html.encode("utf-8"),
-            file_name="relatorio_formulacao.html",
-            mime="text/html",
-        )
-
-    with c3:
-        try:
-            pdf_bytes = make_pdf_report(payload_last)
-            st.download_button(
-                "Baixar PDF",
-                data=pdf_bytes,
-                file_name="relatorio_formulacao.pdf",
-                mime="application/pdf",
-            )
-        except Exception:
-            st.caption("PDF: instale reportlab (python -m pip install reportlab)")
-
-if "last_saved_id" in st.session_state:
-    st.success(f"Salvo no histórico! ID: {st.session_state['last_saved_id']}")
-
-
-
-# ================= HISTÓRICO =================
-st.divider()
-st.header("Histórico (salvos no computador)")
+st.header("Histórico")
 
 hist = list_runs()
 
 if hist.empty:
     st.info("Nenhuma formulação salva ainda.")
 else:
-    st.dataframe(hist, use_container_width=True, hide_index=True)
+    # ✅ cria um "código visível" (prioridade: coluna codigo > payload.codigo > id curto)
+    def _codigo_vis(row):
+        # 1) coluna codigo (se existir)
+        cod = row.get("codigo", None)
+        if cod:
+            return str(cod)
 
-    run_id = st.selectbox("Escolha um ID para reabrir", hist["id"].tolist())
+        # 2) tenta ler de dentro do payload (se payload veio no list_runs)
+        payload = row.get("payload", None)
+        if isinstance(payload, dict):
+            cod2 = payload.get("codigo")
+            if cod2:
+                return str(cod2)
+
+        # 3) fallback: id curto
+        return str(row["id"])[:8]
+
+    # se list_runs não trouxe payload, funciona igual (vai cair no id curto)
+    hist = hist.copy()
+    hist["codigo_vis"] = hist.apply(_codigo_vis, axis=1)
+
+    # ✅ tabela bonita (sem coluna payload gigante)
+    cols_show = ["codigo_vis", "data_hora", "fase", "custo_R_kg"]
+    st.dataframe(hist[cols_show], use_container_width=True, hide_index=True)
+
+    # ✅ selectbox: por baixo usa id, mas mostra codigo + data
+    id_to_label = {
+        row["id"]: f"{row['codigo_vis']}  |  {row['data_hora']}  |  {row['fase']}"
+        for _, row in hist.iterrows()
+    }
+
+    run_id = st.selectbox(
+        "Escolha uma formulação para reabrir",
+        options=hist["id"].tolist(),
+        format_func=lambda rid: id_to_label.get(rid, rid),
+    )
 
     if st.button("Reabrir relatório"):
         run = load_run(run_id)
         html = build_report_html(run)
         components.html(html, height=900, scrolling=True)
+
 
         st.download_button(
             "Baixar relatório reaberto (HTML)",
