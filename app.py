@@ -42,21 +42,27 @@ if usar_banco:
         usar_banco = False
 
 if not usar_banco:
-    arquivo = st.file_uploader("Envie sua planilha .xlsx (abas: 'Alimentos' e 'Exigencias')", type=["xlsx"])
-    if not arquivo:
+    arquivo = st.file_uploader(
+        "Envie sua planilha .xlsx (abas: 'Alimentos' e 'Exigencias')",
+        type=["xlsx"],
+        key="uploader_planilha"
+    )
+
+    # Só mostra o botão quando a planilha existir
+    if arquivo is not None:
+        # carrega a planilha
+        df_food, df_req = load_planilha(arquivo)
+
+        # botão fica LOGO ABAIXO do upload
+        if st.button("Importar planilha para o banco (Supabase)", key="btn_importar_banco"):
+            n1 = import_foods_from_df(df_food)
+            n2 = import_requirements_from_df(df_req)
+            st.success(f"Importado para o banco ✅ Foods: {n1} | Requirements: {n2}")
+            st.rerun()
+    else:
         st.info("Envie a planilha para começar.")
         st.stop()
 
-    df_food, df_req = load_planilha(arquivo)
-if df_req.empty:
-    st.error("Não há exigências carregadas (banco/excel).")
-    st.stop()
-    # botão de importar pro banco
-    if st.button("Importar planilha para o banco (Supabase)"):
-        n1 = import_foods_from_df(df_food)
-        n2 = import_requirements_from_df(df_req)
-        st.success(f"Importado para o banco ✅ Foods: {n1} | Requirements: {n2}")
-        st.rerun()
 
 col1, col2 = st.columns([2, 1])
 
@@ -91,6 +97,7 @@ def get_req_row(df_req: pd.DataFrame, exigencia: str, fase: str) -> dict:
     if row.empty:
         raise ValueError("Exigência não encontrada para essa combinação.")
     return row.iloc[0].to_dict()
+
 
 
     if row.empty:
@@ -260,10 +267,10 @@ if st.button("Formular (mínimo custo)"):
     st.session_state["last_df_res"] = df_res
     st.success("Formulação pronta! Agora você pode salvar no histórico e baixar o relatório abaixo.")
 
+
     st.divider()
 st.subheader("Salvar / Relatório")
 
-# Só mostra botões se já existe formulação pronta
 if "last_payload" not in st.session_state or "last_df_res" not in st.session_state:
     st.info("Faça uma formulação para habilitar salvar e gerar relatório.")
 else:
@@ -301,6 +308,7 @@ else:
             )
         except Exception:
             st.caption("PDF: instale reportlab (python -m pip install reportlab)")
+
 
 
 st.divider()
