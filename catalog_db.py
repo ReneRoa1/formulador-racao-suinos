@@ -8,7 +8,8 @@ def _cfg():
     base = os.environ.get("SUPABASE_URL", "").rstrip("/")
     key = os.environ.get("SUPABASE_SERVICE_KEY", "")
     if not base or not key:
-        raise RuntimeError("Faltam SUPABASE_URL e SUPABASE_SERVICE_KEY nas variáveis de ambiente.")
+        raise RuntimeError("Missing SUPABASE_URL and SUPABASE_SERVICE_KEY env vars.")
+
 
     headers = {
         "apikey": key,
@@ -76,13 +77,13 @@ def import_foods_from_df(df_food: pd.DataFrame) -> int:
 
     df = df_food.copy()
 
-    # tenta achar nomes padrão do seu app
+    # tenta achar nomes padrÃ£o do seu app
     nome_col = "Alimentos" if "Alimentos" in df.columns else ("Ingrediente" if "Ingrediente" in df.columns else None)
     preco_col = "Preco" if "Preco" in df.columns else ("Preco_R$/kg" if "Preco_R$/kg" in df.columns else None)
     categoria_col = "Categoria" if "Categoria" in df.columns else None
 
     if not nome_col:
-        raise ValueError("Não encontrei coluna de nome do alimento (Alimentos/Ingrediente).")
+        raise ValueError("NÃ£o encontrei coluna de nome do alimento (Alimentos/Ingrediente).")
 
     rows = []
     for _, r in df.iterrows():
@@ -122,7 +123,7 @@ def import_requirements_from_df(df_req: pd.DataFrame) -> int:
     Espera df_req com colunas:
     - 'Exigencia' (grupo)
     - 'Fase' (fase)
-    - demais colunas = requerimentos mínimos (nutrientes)
+    - demais colunas = requerimentos mÃ­nimos (nutrientes)
     """
     base, headers = _cfg()
 
