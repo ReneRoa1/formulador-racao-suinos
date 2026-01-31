@@ -194,7 +194,13 @@ if st.button("Formular (mínimo custo)"):
     st.success(f"Custo (R$/kg): {custo:.4f}  |  Custo (R$/ton): {custo*1000:.2f}")
     st.subheader("Inclusão de ingredientes")
     st.dataframe(df_res, use_container_width=True, hide_index=True)
+    from solver import get_shadow_prices
 
+    st.markdown("---")
+    st.subheader("📊 Análise de Sensibilidade — Preço-Sombra")
+
+    df_shadow = get_shadow_prices(prob)
+    st.dataframe(df_shadow, use_container_width=True)
     # nutrientes
     st.subheader("Nutrientes da dieta (obtido vs exigido)")
     dieta = calc_dieta(df_sel, x)

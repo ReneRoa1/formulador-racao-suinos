@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 from pulp import LpProblem, LpMinimize, LpVariable, lpSum, LpStatus, value
+import pulp
+
 
 
 NUTRIENTS_MIN = ["PB","EM","Pdig","Ca","Na","Lisina","MetCis","Treonina","Triptofano"]
@@ -62,9 +64,16 @@ def solve_lp(df_food_sel: pd.DataFrame, req_min: dict, fb_max=None, ee_max=None)
     # Objetivo: custo mínimo
     prob += lpSum(x[n] * nutr(n, "Preco") for n in x) / 100
 
-    prob.solve()
-    status = LpStatus[prob.status]
+    import pulp
+
+    solver = pulp.HiGHS_CMD(msg=False)
+    prob.solve(solver)
+
+    status = pulp.LpStatus[prob.status]
     return prob, x, status
+
+
+
 
 
 def calc_dieta(df_food_sel: pd.DataFrame, x: dict) -> dict:
@@ -97,3 +106,16 @@ def build_results_table(df_food_sel: pd.DataFrame, x: dict) -> pd.DataFrame:
             rows.append({"Ingrediente": nome, "Inclusao_%": round(inc, 4), "Preco_R$/kg": preco})
     return pd.DataFrame(rows).sort_values("Inclusao_%", ascending=False)
 
+def get_shadow_prices(prob):
+    """
+    Extrai preço-sombra e folga das restrições.
+    """
+    rows = []
+    for cname, c in prob.constraints.items():
+        rows.append({
+            "Restricao": cname,
+            "Preco_Sombra": getattr(c, "pi", None),
+            "Folga": getattr(c, "slack", None),
+            "Ativa": abs(getattr(c, "slack", 0)) < 1e-6
+        })
+    return pd.DataFrame(rows)

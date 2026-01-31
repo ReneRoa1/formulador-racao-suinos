@@ -26,6 +26,9 @@
     <Compile Include="app.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="catalog_db.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="history.py">
       <SubType>Code</SubType>
     </Compile>
