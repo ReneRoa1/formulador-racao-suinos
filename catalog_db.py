@@ -164,3 +164,73 @@ def fetch_requirements() -> pd.DataFrame:
     )
     r.raise_for_status()
     return pd.DataFrame(r.json() or [])
+
+def foods_to_df_for_solver(df_food_db: pd.DataFrame) -> pd.DataFrame:
+    """
+    Converte o formato vindo do Supabase (foods):
+      nome, preco, nutrientes(jsonb)
+    para o formato que o app/solver espera:
+      Alimentos, Preco, + colunas de nutrientes
+    """
+    if df_food_db is None or df_food_db.empty:
+        return pd.DataFrame()
+
+    rows = []
+    for _, r in df_food_db.iterrows():
+        nutrientes = r.get("nutrientes") or {}
+        if not isinstance(nutrientes, dict):
+            nutrientes = {}
+
+        row = {
+            "Alimentos": r.get("nome"),
+            "Preco": r.get("preco"),
+        }
+        # espalha nutrientes em colunas
+        row.update(nutrientes)
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+
+    # garante tipos numéricos onde possível
+    if "Preco" in df.columns:
+        df["Preco"] = pd.to_numeric(df["Preco"], errors="coerce")
+
+    # tenta converter nutrientes para numeric
+    for c in df.columns:
+        if c not in ["Alimentos"]:
+            df[c] = pd.to_numeric(df[c], errors="ignore")
+
+    return df
+
+
+def requirements_to_df_for_ui(df_req_db: pd.DataFrame) -> pd.DataFrame:
+    """
+    Converte o formato vindo do Supabase (requirements):
+      exigencia, fase, req_min(jsonb)
+    para o formato que o app espera:
+      Exigencia, Fase, + colunas de nutrientes mínimos
+    """
+    if df_req_db is None or df_req_db.empty:
+        return pd.DataFrame()
+
+    rows = []
+    for _, r in df_req_db.iterrows():
+        req_min = r.get("req_min") or {}
+        if not isinstance(req_min, dict):
+            req_min = {}
+
+        row = {
+            "Exigencia": r.get("exigencia"),
+            "Fase": r.get("fase"),
+        }
+        row.update(req_min)
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+
+    # tenta converter colunas numéricas (nutrientes) para float
+    for c in df.columns:
+        if c not in ["Exigencia", "Fase"]:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+
+    return df
