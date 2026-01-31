@@ -260,6 +260,48 @@ if st.button("Formular (mínimo custo)"):
     st.session_state["last_df_res"] = df_res
     st.success("Formulação pronta! Agora você pode salvar no histórico e baixar o relatório abaixo.")
 
+    st.divider()
+st.subheader("Salvar / Relatório")
+
+# Só mostra botões se já existe formulação pronta
+if "last_payload" not in st.session_state or "last_df_res" not in st.session_state:
+    st.info("Faça uma formulação para habilitar salvar e gerar relatório.")
+else:
+    payload_last = st.session_state["last_payload"]
+    df_last = st.session_state["last_df_res"]
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        if st.button("Salvar no histórico", key="btn_salvar_historico"):
+            meta = save_run(payload_last, df_last)
+            st.session_state["last_saved_id"] = meta.get("id", "")
+            st.success(f"Salvo no histórico! ID: {st.session_state['last_saved_id']}")
+            st.rerun()
+
+    with c2:
+        html = build_report_html(payload_last)
+        st.download_button(
+            "Baixar relatório (HTML)",
+            data=html.encode("utf-8"),
+            file_name="relatorio_formulacao.html",
+            mime="text/html",
+            key="btn_baixar_html",
+        )
+
+    with c3:
+        try:
+            pdf_bytes = make_pdf_report(payload_last)
+            st.download_button(
+                "Baixar PDF",
+                data=pdf_bytes,
+                file_name="relatorio_formulacao.pdf",
+                mime="application/pdf",
+                key="btn_baixar_pdf",
+            )
+        except Exception:
+            st.caption("PDF: instale reportlab (python -m pip install reportlab)")
+
 
 st.divider()
 st.header("Histórico")
