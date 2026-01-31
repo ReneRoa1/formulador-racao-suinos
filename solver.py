@@ -66,8 +66,9 @@ def solve_lp(df_food_sel: pd.DataFrame, req_min: dict, fb_max=None, ee_max=None)
 
     import pulp
 
-    solver = pulp.HiGHS_CMD(msg=False)
+    solver = pulp.HiGHS(msg=False)   # <-- usa highspy por baixo
     prob.solve(solver)
+
 
     status = pulp.LpStatus[prob.status]
     return prob, x, status
