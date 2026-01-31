@@ -120,3 +120,13 @@ def get_shadow_prices(prob):
             "Ativa": abs(getattr(c, "slack", 0)) < 1e-6
         })
     return pd.DataFrame(rows)
+
+def get_reduced_costs(prob, x_vars):
+    rows = []
+    for name, var in x_vars.items():
+        rows.append({
+            "Ingrediente": name,
+            "Inclusao_%": var.varValue,
+            "Custo_Reduzido": getattr(var, "dj", None)  # <-- aqui!
+        })
+    return pd.DataFrame(rows)
