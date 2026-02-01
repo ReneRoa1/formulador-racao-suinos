@@ -12,8 +12,12 @@ from reporting import build_report_html, make_pdf_report
 from io_excel import load_planilha, build_ui_table
 from solver import extract_requirements, solve_lp, calc_dieta, build_results_table, get_shadow_prices
 from pulp import LpStatus, value
+
 from auth_ui import auth_gate
 user_id = auth_gate()
+
+menu = st.sidebar.radio("Menu", ["Formular ração", "📚 Cadastros (meus dados)"])
+
 from catalog_db import (
     fetch_foods, fetch_requirements,
     import_foods_from_df, import_requirements_from_df,
@@ -22,8 +26,51 @@ from catalog_db import (
 
 st.success(f"✅ Logado! user_id={user_id}")
 
-st.title("Formulador de Racao (Suinos) - Web")
+# =========================================================
+# SEÇÃO CADASTROS
+# =========================================================
+if menu == "📚 Cadastros (meus dados)":
+    st.title("📚 Cadastros (meus dados)")
 
+    from supabase_client import supabase_authed
+    access_token = st.session_state.get("access_token")
+
+    if not access_token:
+        st.error("Sessão inválida. Faça login novamente.")
+        st.stop()
+
+    sb_user = supabase_authed(access_token)
+
+    st.subheader("🍽️ Meus Alimentos")
+
+    df_food_db = sb_user.table("foods").select("*").eq("user_id", user_id).execute().data
+    df_food = pd.DataFrame(df_food_db)
+
+    edited = st.data_editor(df_food, num_rows="dynamic", use_container_width=True)
+
+    if st.button("Salvar alimentos"):
+        # estratégia simples: apagar e inserir tudo do usuário
+        sb_user.table("foods").delete().eq("user_id", user_id).execute()
+
+        rows = edited.to_dict(orient="records")
+        for r in rows:
+            r.pop("id", None)
+            r.pop("created_at", None)
+            r["user_id"] = user_id
+
+        if rows:
+            sb_user.table("foods").insert(rows).execute()
+
+        st.success("Alimentos salvos ✅")
+        st.rerun()
+
+    # ⚠️ importantíssimo: impede cair na fórmula
+    st.stop()
+
+# =========================================================
+# SEÇÃO FORMULAR (se chegou aqui, menu == "Formular ração")
+# =========================================================
+st.title("Formulador de Racao (Suinos) - Web")
 usar_banco = st.toggle("Usar dados do banco (Supabase)", value=True)
 
 df_food = pd.DataFrame()

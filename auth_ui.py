@@ -5,20 +5,14 @@ from supabase_client import supabase_anon, supabase_authed
 from bootstrap_db import ensure_user_seeded
 
 def auth_gate():
-    """
-    Mostra Login / Criar conta e retorna user_id quando autenticado.
-    Guarda session/user em st.session_state.
-    """
     sb = supabase_anon()
 
     if "session" not in st.session_state:
         st.session_state["session"] = None
         st.session_state["user"] = None
 
-    # Se não estiver logado, mostra login/cadastro e para o app aqui
     if st.session_state["session"] is None:
         st.subheader("Entrar / Criar conta")
-
         tab_login, tab_signup = st.tabs(["Login", "Criar conta"])
 
         with tab_login:
@@ -28,7 +22,9 @@ def auth_gate():
                 try:
                     res = sb.auth.sign_in_with_password({"email": email, "password": senha})
 
-                    # Client autenticado (RLS)
+                    # ✅ guarda token para o resto do app
+                    st.session_state["access_token"] = res.session.access_token
+
                     sb_user = supabase_authed(res.session.access_token)
                     ensure_user_seeded(sb_user, res.user.id)
 
@@ -50,7 +46,6 @@ def auth_gate():
 
         st.stop()
 
-    # Logado
     user = st.session_state["user"]
     st.caption(f"Logado como: {user.email}")
 
@@ -61,6 +56,7 @@ def auth_gate():
             pass
         st.session_state["session"] = None
         st.session_state["user"] = None
+        st.session_state.pop("access_token", None)  # ✅ limpa token
         st.rerun()
 
     return user.id
