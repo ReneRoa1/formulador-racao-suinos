@@ -234,3 +234,35 @@ def requirements_to_df_for_ui(df_req_db: pd.DataFrame) -> pd.DataFrame:
             df[c] = pd.to_numeric(df[c], errors="coerce")
 
     return df
+
+def ensure_user_seeded(sb, user_id: str):
+    """
+    Se o usuário ainda não tem foods/requirements próprios, copia templates (user_id is null).
+    sb precisa ser um client autenticado (com token do usuário).
+    """
+    # já tem foods próprios?
+    own_foods = sb.table("foods").select("id").eq("user_id", user_id).limit(1).execute().data
+    if not own_foods:
+        templates = sb.table("foods").select("*").is_("user_id", "null").execute().data
+
+        if templates:
+            # remove id/created_at se existir, e seta user_id
+            payload = []
+            for r in templates:
+                r.pop("id", None)
+                r.pop("created_at", None)
+                r["user_id"] = user_id
+                payload.append(r)
+            sb.table("foods").insert(payload).execute()
+
+    own_req = sb.table("requirements").select("id").eq("user_id", user_id).limit(1).execute().data
+    if not own_req:
+        templates = sb.table("requirements").select("*").is_("user_id", "null").execute().data
+        if templates:
+            payload = []
+            for r in templates:
+                r.pop("id", None)
+                r.pop("created_at", None)
+                r["user_id"] = user_id
+                payload.append(r)
+            sb.table("requirements").insert(payload).execute()
