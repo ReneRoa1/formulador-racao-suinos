@@ -134,3 +134,62 @@ def get_reduced_costs(prob, x_vars):
             "Custo_Reduzido": getattr(var, "dj", None)  # <-- aqui!
         })
     return pd.DataFrame(rows)
+
+def get_reduced_costs_manual(prob, df_food_sel: pd.DataFrame, x_vars: dict, req_min: dict, fb_max=None, ee_max=None):
+    """
+    Reduced cost calculado via duals (constraint.pi).
+    Funciona mesmo quando PuLP não preenche var.dj.
+    """
+    # duals disponíveis
+    dual = {name: getattr(c, "pi", 0.0) for name, c in prob.constraints.items()}
+
+    # helper coeficiente do nutriente no ingrediente
+    def nutr(nome, col):
+        return float(df_food_sel.loc[df_food_sel["Alimentos"] == nome, col].iloc[0])
+
+    rows = []
+
+    for nome, var in x_vars.items():
+        # c_j no seu objetivo: (Preco)/100
+        c_j = nutr(nome, "Preco") / 100.0
+
+        # soma pi_i * a_ij
+        s = 0.0
+
+        # Soma_100: sum x == 100  -> coef = 1
+        s += dual.get("Soma_100", 0.0) * 1.0
+
+        # mínimos: sum(x*nut)/100 >= minimo -> coef = nut/100
+        for nut, minimo in req_min.items():
+            if minimo is None:
+                continue
+            if nut not in df_food_sel.columns:
+                continue
+            cname = f"{nut}_min"
+            a_ij = nutr(nome, nut) / 100.0
+            s += dual.get(cname, 0.0) * a_ij
+
+        # máximos opcionais: sum(x*FB)/100 <= fb_max -> coef = FB/100
+        if fb_max is not None and "FB" in df_food_sel.columns:
+            a_ij = nutr(nome, "FB") / 100.0
+            s += dual.get("FB_max", 0.0) * a_ij
+
+        if ee_max is not None and "EE" in df_food_sel.columns:
+            a_ij = nutr(nome, "EE") / 100.0
+            s += dual.get("EE_max", 0.0) * a_ij
+
+        rc = c_j - s
+
+        rows.append({
+            "Ingrediente": nome,
+            "Inclusao_%": float(var.varValue or 0.0),
+            "Reduced_Cost": rc,
+        })
+
+    df = pd.DataFrame(rows)
+
+    # Deixa mais legível: ordena pelos que estão fora da solução e mais “perto” de entrar
+    df["Usado?"] = df["Inclusao_%"] > 1e-6
+    df = df.sort_values(["Usado?", "Reduced_Cost"], ascending=[False, True]).reset_index(drop=True)
+
+    return df
