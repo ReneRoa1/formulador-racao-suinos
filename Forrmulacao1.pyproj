@@ -57,7 +57,13 @@
     </Interpreter>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="render-build.sh">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="render.yaml">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="runtime.txt">
       <SubType>Code</SubType>
     </Content>
     <Content Include="start.sh">

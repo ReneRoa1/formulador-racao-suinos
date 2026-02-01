@@ -198,6 +198,12 @@ if st.button("Formular (mínimo custo)"):
     st.subheader("Nutrientes da dieta (obtido vs exigido)")
     dieta = calc_dieta(df_sel, x)
 
+    from solver import get_reduced_costs_manual
+
+    st.subheader("📉 Análise de Sensibilidade — Reduced Cost (ingredientes)")
+    df_rc = get_reduced_costs_manual(prob, df_sel, x, req_min, fb_max=fb_lim, ee_max=ee_lim)
+    st.dataframe(df_rc, use_container_width=True, hide_index=True)
+
     eps = 1e-6
     linhas = []
     for nut, obt in dieta.items():
