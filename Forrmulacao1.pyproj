@@ -26,6 +26,12 @@
     <Compile Include="app.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="auth_ui.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="bootstrap_db.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="catalog_db.py">
       <SubType>Code</SubType>
     </Compile>
@@ -42,6 +48,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="solver.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="supabase_client.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -67,6 +76,9 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="start.sh">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="URL_KEY.env">
       <SubType>Code</SubType>
     </Content>
   </ItemGroup>
