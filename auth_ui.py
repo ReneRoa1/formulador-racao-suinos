@@ -15,7 +15,7 @@ def auth_gate():
         st.session_state["session"] = None
         st.session_state["user"] = None
 
-    # Se n„o estiver logado, mostra login/cadastro e para o app aqui
+    # Se n√£o estiver logado, mostra login/cadastro e para o app aqui
     if st.session_state["session"] is None:
         st.subheader("Entrar / Criar conta")
 
@@ -44,7 +44,7 @@ def auth_gate():
             if st.button("Criar conta", key="btn_signup"):
                 try:
                     sb.auth.sign_up({"email": email, "password": senha})
-                    st.success("Conta criada! Agora faÁa login na aba Login.")
+                    st.success("Conta criada! Agora fa√ßa login na aba Login.")
                 except Exception as e:
                     st.error(f"Falha ao criar conta: {e}")
 
