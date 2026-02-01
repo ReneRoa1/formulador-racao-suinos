@@ -12,11 +12,15 @@ from reporting import build_report_html, make_pdf_report
 from io_excel import load_planilha, build_ui_table
 from solver import extract_requirements, solve_lp, calc_dieta, build_results_table, get_shadow_prices
 from pulp import LpStatus, value
+from auth_ui import auth_gate
+user_id = auth_gate()
 from catalog_db import (
     fetch_foods, fetch_requirements,
     import_foods_from_df, import_requirements_from_df,
     foods_to_df_for_solver, requirements_to_df_for_ui
 )
+
+st.success(f"✅ Logado! user_id={user_id}")
 
 st.title("Formulador de Racao (Suinos) - Web")
 
