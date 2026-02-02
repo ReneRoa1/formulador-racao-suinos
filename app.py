@@ -41,6 +41,16 @@ if menu == "📚 Cadastros (meus dados)":
     sb_user = supabase_authed(access_token)
 
     tab_foods, tab_reqs = st.tabs(["🍽️ Alimentos", "📌 Exigências"])
+   
+    from supabase_client import supabase_authed
+
+access_token = st.session_state.get("session").access_token if st.session_state.get("session") else None
+
+if not access_token:
+    st.error("Sessão inválida. Faça login novamente.")
+    st.stop()
+
+    sb_user = supabase_authed(access_token)
 
     # =====================================================
     # TAB 1: ALIMENTOS
