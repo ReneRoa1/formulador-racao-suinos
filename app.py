@@ -41,31 +41,66 @@ if menu == "📚 Cadastros (meus dados)":
 
     sb_user = supabase_authed(access_token)
 
+    # =====================================================
+    # CRUD ALIMENTOS (FORMULÁRIO)
+    # =====================================================
+    import json
+
     st.subheader("🍽️ Meus Alimentos")
 
-    df_food_db = sb_user.table("foods").select("*").eq("user_id", user_id).execute().data
-    df_food = pd.DataFrame(df_food_db)
+    # ---------- FORM ----------
+    st.markdown("### ➕ Adicionar alimento")
 
-    edited = st.data_editor(df_food, num_rows="dynamic", use_container_width=True)
+    with st.form("form_add_food", clear_on_submit=True):
+        nome = st.text_input("Nome do alimento")
+        categoria = st.text_input("Categoria")
+        preco = st.number_input("Preço (R$/kg)", min_value=0.0, step=0.01)
 
-    if st.button("Salvar alimentos"):
-        # estratégia simples: apagar e inserir tudo do usuário
-        sb_user.table("foods").delete().eq("user_id", user_id).execute()
+        PB = st.number_input("PB (%)", 0.0)
+        EM = st.number_input("EM", 0.0)
+        Pdig = st.number_input("Pdig (%)", 0.0)
+        Ca = st.number_input("Ca (%)", 0.0)
+        Na = st.number_input("Na (%)", 0.0)
+        Lisina = st.number_input("Lisina (%)", 0.0)
+        MetCis = st.number_input("MetCis (%)", 0.0)
+        Treonina = st.number_input("Treonina (%)", 0.0)
+        Triptofano = st.number_input("Triptofano (%)", 0.0)
+        FB = st.number_input("FB (%)", 0.0)
+        EE = st.number_input("EE (%)", 0.0)
 
-        rows = edited.to_dict(orient="records")
-        for r in rows:
-            r.pop("id", None)
-            r.pop("created_at", None)
-            r["user_id"] = user_id
+        submitted = st.form_submit_button("Adicionar")
 
-        if rows:
-            sb_user.table("foods").insert(rows).execute()
-
-        st.success("Alimentos salvos ✅")
+    if submitted and nome.strip():
+        payload = {
+            "user_id": user_id,
+            "nome": nome.strip(),
+            "categoria": categoria.strip() or None,
+            "preco": float(preco),
+            "nutrientes": {
+                "PB": PB, "EM": EM, "Pdig": Pdig, "Ca": Ca, "Na": Na,
+                "Lisina": Lisina, "MetCis": MetCis, "Treonina": Treonina,
+                "Triptofano": Triptofano, "FB": FB, "EE": EE
+            }
+        }
+        sb_user.table("foods").insert(payload).execute()
+        st.success("Alimento adicionado ✅")
         st.rerun()
 
-    # ⚠️ importantíssimo: impede cair na fórmula
+    # ---------- LISTAGEM ----------
+    rows = sb_user.table("foods").select("*").eq("user_id", user_id).order("nome").execute().data
+    df = pd.DataFrame(rows)
+    st.dataframe(df[["nome","categoria","preco"]], use_container_width=True)
+
+    # ---------- DELETE ----------
+    if not df.empty:
+        food_id = st.selectbox("Excluir alimento", df["id"], format_func=lambda x: df[df["id"]==x]["nome"].iloc[0])
+        if st.button("Excluir"):
+            sb_user.table("foods").delete().eq("id", food_id).execute()
+            st.rerun()
+
+    # 🚨 ISSO É O MAIS IMPORTANTE
     st.stop()
+
 
 # =========================================================
 # SEÇÃO FORMULAR (se chegou aqui, menu == "Formular ração")
