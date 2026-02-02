@@ -33,107 +33,27 @@ if menu == "📚 Cadastros (meus dados)":
     st.title("📚 Cadastros (meus dados)")
 
     from supabase_client import supabase_authed
-    access_token = st.session_state.get("access_token")
+
+    # ✅ pega o access_token da sessão criada no auth_gate()
+    session = st.session_state.get("session")
+    access_token = session.access_token if session else None
+
     if not access_token:
         st.error("Sessão inválida. Faça login novamente.")
         st.stop()
 
+    # ✅ cria o client autenticado UMA VEZ
     sb_user = supabase_authed(access_token)
 
     tab_foods, tab_reqs = st.tabs(["🍽️ Alimentos", "📌 Exigências"])
-   
-    from supabase_client import supabase_authed
-
-access_token = st.session_state.get("session").access_token if st.session_state.get("session") else None
-
-if not access_token:
-    st.error("Sessão inválida. Faça login novamente.")
-    st.stop()
-
-    sb_user = supabase_authed(access_token)
 
     # =====================================================
     # TAB 1: ALIMENTOS
     # =====================================================
     with tab_foods:
         st.subheader("🍽️ Meus Alimentos")
-
-        st.markdown("### ➕ Adicionar alimento")
-        with st.form("form_add_food", clear_on_submit=True):
-            nome = st.text_input("Nome do alimento", placeholder="Ex.: Milho")
-            categoria = st.text_input("Categoria (opcional)", placeholder="Ex.: Energia / Proteína")
-            preco = st.number_input("Preço (R$/kg)", min_value=0.0, value=0.0, step=0.01)
-
-            st.caption("Nutrientes (preencha com 0 se não souber)")
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                PB = st.number_input("PB (%)", min_value=0.0, value=0.0, step=0.01)
-                EM = st.number_input("EM", min_value=0.0, value=0.0, step=0.01)
-                Ca = st.number_input("Ca (%)", min_value=0.0, value=0.0, step=0.01)
-                Na = st.number_input("Na (%)", min_value=0.0, value=0.0, step=0.01)
-            with c2:
-                Lisina = st.number_input("Lisina (%)", min_value=0.0, value=0.0, step=0.01)
-                MetCis = st.number_input("MetCis (%)", min_value=0.0, value=0.0, step=0.01)
-                Treonina = st.number_input("Treonina (%)", min_value=0.0, value=0.0, step=0.01)
-                Triptofano = st.number_input("Triptofano (%)", min_value=0.0, value=0.0, step=0.01)
-            with c3:
-                Pdig = st.number_input("Pdig (%)", min_value=0.0, value=0.0, step=0.01)
-                FB = st.number_input("FB (%)", min_value=0.0, value=0.0, step=0.01)
-                EE = st.number_input("EE (%)", min_value=0.0, value=0.0, step=0.01)
-
-            submitted = st.form_submit_button("Adicionar")
-
-        if submitted:
-            if not nome.strip():
-                st.error("Informe o nome do alimento.")
-            else:
-                payload = {
-                    "user_id": user_id,
-                    "nome": nome.strip(),
-                    "categoria": categoria.strip() if categoria.strip() else None,
-                    "preco": float(preco),
-                    "nutrientes": {
-                        "PB": float(PB), "EM": float(EM), "Pdig": float(Pdig),
-                        "Ca": float(Ca), "Na": float(Na),
-                        "Lisina": float(Lisina), "MetCis": float(MetCis),
-                        "Treonina": float(Treonina), "Triptofano": float(Triptofano),
-                        "FB": float(FB), "EE": float(EE),
-                    }
-                }
-                try:
-                    sb_user.table("foods").insert(payload).execute()
-                    st.success("Alimento adicionado ✅")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Erro ao inserir alimento: {e}")
-
-        st.markdown("### 📋 Lista de alimentos")
-        foods_rows = (
-            sb_user.table("foods")
-            .select("id,nome,categoria,preco,nutrientes,updated_at")
-            .eq("user_id", user_id)
-            .order("nome")
-            .execute()
-            .data
-        )
-        df_food = pd.DataFrame(foods_rows)
-
-        if df_food.empty:
-            st.info("Você ainda não cadastrou alimentos.")
-        else:
-            st.dataframe(df_food[["nome","categoria","preco","updated_at"]], use_container_width=True, hide_index=True)
-
-            st.markdown("### 🗑️ Excluir alimento")
-            food_id = st.selectbox(
-                "Selecione um alimento",
-                df_food["id"].tolist(),
-                format_func=lambda _id: df_food.loc[df_food["id"] == _id, "nome"].iloc[0],
-                key="sel_del_food"
-            )
-            if st.button("Excluir selecionado", key="btn_del_food"):
-                sb_user.table("foods").delete().eq("id", food_id).execute()
-                st.success("Excluído ✅")
-                st.rerun()
+        # (seu CRUD de alimentos aqui, usando sb_user)
+        # ...
 
     # =====================================================
     # TAB 2: EXIGÊNCIAS
@@ -141,165 +61,164 @@ if not access_token:
     with tab_reqs:
         st.subheader("📌 Minhas Exigências")
 
-# ---------- CARREGA LISTA ----------
-req_rows = (
-    sb_user.table("requirements")
-    .select("id,exigencia,fase,req_min,updated_at")
-    .eq("user_id", user_id)
-    .order("exigencia")
-    .execute()
-    .data
-)
-df_req = pd.DataFrame(req_rows)
+        # ----------- CARREGA LISTA -----------
+        req_rows = (
+            sb_user.table("requirements")
+            .select("id,exigencia,fase,req_min,updated_at")
+            .eq("user_id", user_id)
+            .order("exigencia")
+            .execute()
+            .data
+        )
+        df_req = pd.DataFrame(req_rows)
 
-# helper: pega valor do JSON
-def _get_req(req_min: dict, key: str) -> float:
-    if isinstance(req_min, dict) and key in req_min and req_min[key] is not None:
-        try:
-            return float(req_min[key])
-        except Exception:
+        def _get_req(req_min: dict, key: str) -> float:
+            if isinstance(req_min, dict) and key in req_min and req_min[key] is not None:
+                try:
+                    return float(req_min[key])
+                except Exception:
+                    return 0.0
             return 0.0
-    return 0.0
 
-# =====================================================
-# 1) ADICIONAR
-# =====================================================
-st.markdown("### ➕ Adicionar exigência")
+        # =====================================================
+        # 1) ADICIONAR
+        # =====================================================
+        st.markdown("### ➕ Adicionar exigência")
 
-with st.form("form_add_req", clear_on_submit=True):
-    exigencia_new = st.text_input("Nome do grupo (exigencia)", placeholder="Ex.: Rostagno / NRC / Empresa X")
-    fase_new = st.text_input("Fase", placeholder="Ex.: Crescimento 30-50kg")
+        with st.form("form_add_req", clear_on_submit=True):
+            exigencia_new = st.text_input("Nome do grupo (exigencia)", placeholder="Ex.: Rostagno / NRC / Empresa X")
+            fase_new = st.text_input("Fase", placeholder="Ex.: Crescimento 30-50kg")
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        PB = st.number_input("PB mínima (%)", 0.0, step=0.01, key="add_PB")
-        EM = st.number_input("EM mínima", 0.0, step=0.01, key="add_EM")
-        Pdig = st.number_input("Pdig mínima (%)", 0.0, step=0.01, key="add_Pdig")
-    with c2:
-        Ca = st.number_input("Ca mínima (%)", 0.0, step=0.01, key="add_Ca")
-        Na = st.number_input("Na mínima (%)", 0.0, step=0.01, key="add_Na")
-        Lisina = st.number_input("Lisina mínima (%)", 0.0, step=0.01, key="add_Lisina")
-    with c3:
-        MetCis = st.number_input("MetCis mínima (%)", 0.0, step=0.01, key="add_MetCis")
-        Treonina = st.number_input("Treonina mínima (%)", 0.0, step=0.01, key="add_Treonina")
-        Triptofano = st.number_input("Triptofano mínima (%)", 0.0, step=0.01, key="add_Triptofano")
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                PB = st.number_input("PB mínima (%)", 0.0, step=0.01, key="add_PB")
+                EM = st.number_input("EM mínima", 0.0, step=0.01, key="add_EM")
+                Pdig = st.number_input("Pdig mínima (%)", 0.0, step=0.01, key="add_Pdig")
+            with c2:
+                Ca = st.number_input("Ca mínima (%)", 0.0, step=0.01, key="add_Ca")
+                Na = st.number_input("Na mínima (%)", 0.0, step=0.01, key="add_Na")
+                Lisina = st.number_input("Lisina mínima (%)", 0.0, step=0.01, key="add_Lisina")
+            with c3:
+                MetCis = st.number_input("MetCis mínima (%)", 0.0, step=0.01, key="add_MetCis")
+                Treonina = st.number_input("Treonina mínima (%)", 0.0, step=0.01, key="add_Treonina")
+                Triptofano = st.number_input("Triptofano mínima (%)", 0.0, step=0.01, key="add_Triptofano")
 
-    submitted_add = st.form_submit_button("Adicionar exigência")
+            submitted_add = st.form_submit_button("Adicionar exigência")
 
-if submitted_add:
-    if not exigencia_new.strip() or not fase_new.strip():
-        st.error("Preencha exigencia e fase.")
-    else:
-        payload = {
-            "user_id": user_id,
-            "exigencia": exigencia_new.strip(),
-            "fase": fase_new.strip(),
-            "req_min": {
-                "PB": float(PB), "EM": float(EM), "Pdig": float(Pdig),
-                "Ca": float(Ca), "Na": float(Na),
-                "Lisina": float(Lisina), "MetCis": float(MetCis),
-                "Treonina": float(Treonina), "Triptofano": float(Triptofano),
-            },
-        }
-        try:
-            sb_user.table("requirements").insert(payload).execute()
-            st.success("Exigência adicionada ✅")
-            st.rerun()
-        except Exception as e:
-            st.error(f"Erro ao inserir exigência: {e}")
-
-st.divider()
-
-# =====================================================
-# 2) LISTA + EDITAR / EXCLUIR
-# =====================================================
-st.markdown("### 📋 Lista de exigências")
-
-if df_req.empty:
-    st.info("Você ainda não cadastrou exigências.")
-else:
-    # resumo para visualizar
-    def _req_resume(d):
-        if not isinstance(d, dict):
-            return ""
-        keys = ["PB","EM","Lisina","MetCis","Ca","Na"]
-        return " | ".join([f"{k}:{d.get(k,0)}" for k in keys])
-
-    df_req["req_min_resumo"] = df_req["req_min"].apply(_req_resume)
-
-    st.dataframe(
-        df_req[["exigencia","fase","req_min_resumo","updated_at"]],
-        use_container_width=True,
-        hide_index=True
-    )
-
-    st.markdown("### ✏️ Editar exigência")
-
-    req_id = st.selectbox(
-        "Selecione para editar",
-        df_req["id"].tolist(),
-        format_func=lambda _id: f"{df_req.loc[df_req['id']==_id,'exigencia'].iloc[0]} | {df_req.loc[df_req['id']==_id,'fase'].iloc[0]}",
-        key="sel_edit_req"
-    )
-
-    row = df_req[df_req["id"] == req_id].iloc[0]
-    req_min = row["req_min"] if isinstance(row["req_min"], dict) else {}
-
-    with st.form("form_edit_req"):
-        exigencia_edit = st.text_input("Exigencia", value=str(row["exigencia"]), key="edit_exigencia")
-        fase_edit = st.text_input("Fase", value=str(row["fase"]), key="edit_fase")
-
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            PB_e = st.number_input("PB mínima (%)", value=_get_req(req_min, "PB"), step=0.01, key="edit_PB")
-            EM_e = st.number_input("EM mínima", value=_get_req(req_min, "EM"), step=0.01, key="edit_EM")
-            Pdig_e = st.number_input("Pdig mínima (%)", value=_get_req(req_min, "Pdig"), step=0.01, key="edit_Pdig")
-        with c2:
-            Ca_e = st.number_input("Ca mínima (%)", value=_get_req(req_min, "Ca"), step=0.01, key="edit_Ca")
-            Na_e = st.number_input("Na mínima (%)", value=_get_req(req_min, "Na"), step=0.01, key="edit_Na")
-            Lisina_e = st.number_input("Lisina mínima (%)", value=_get_req(req_min, "Lisina"), step=0.01, key="edit_Lisina")
-        with c3:
-            MetCis_e = st.number_input("MetCis mínima (%)", value=_get_req(req_min, "MetCis"), step=0.01, key="edit_MetCis")
-            Treonina_e = st.number_input("Treonina mínima (%)", value=_get_req(req_min, "Treonina"), step=0.01, key="edit_Treonina")
-            Triptofano_e = st.number_input("Triptofano mínima (%)", value=_get_req(req_min, "Triptofano"), step=0.01, key="edit_Triptofano")
-
-        colA, colB = st.columns(2)
-        with colA:
-            btn_save = st.form_submit_button("Salvar alterações ✅")
-        with colB:
-            btn_delete = st.form_submit_button("Excluir exigência 🗑️")
-
-    if btn_save:
-        if not exigencia_edit.strip() or not fase_edit.strip():
-            st.error("Exigencia e fase não podem ficar vazias.")
-        else:
-            payload_upd = {
-                "exigencia": exigencia_edit.strip(),
-                "fase": fase_edit.strip(),
-                "req_min": {
-                    "PB": float(PB_e), "EM": float(EM_e), "Pdig": float(Pdig_e),
-                    "Ca": float(Ca_e), "Na": float(Na_e),
-                    "Lisina": float(Lisina_e), "MetCis": float(MetCis_e),
-                    "Treonina": float(Treonina_e), "Triptofano": float(Triptofano_e),
+        if submitted_add:
+            if not exigencia_new.strip() or not fase_new.strip():
+                st.error("Preencha exigencia e fase.")
+            else:
+                payload = {
+                    "user_id": user_id,
+                    "exigencia": exigencia_new.strip(),
+                    "fase": fase_new.strip(),
+                    "req_min": {
+                        "PB": float(PB), "EM": float(EM), "Pdig": float(Pdig),
+                        "Ca": float(Ca), "Na": float(Na),
+                        "Lisina": float(Lisina), "MetCis": float(MetCis),
+                        "Treonina": float(Treonina), "Triptofano": float(Triptofano),
+                    },
                 }
-            }
-            try:
-                sb_user.table("requirements").update(payload_upd).eq("id", req_id).execute()
-                st.success("Exigência atualizada ✅")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Erro ao atualizar: {e}")
+                try:
+                    sb_user.table("requirements").insert(payload).execute()
+                    st.success("Exigência adicionada ✅")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao inserir exigência: {e}")
 
-    if btn_delete:
-        try:
-            sb_user.table("requirements").delete().eq("id", req_id).execute()
-            st.success("Exigência excluída ✅")
-            st.rerun()
-        except Exception as e:
-            st.error(f"Erro ao excluir: {e}")
+        st.divider()
 
+        # =====================================================
+        # 2) LISTA + EDITAR / EXCLUIR
+        # =====================================================
+        st.markdown("### 📋 Lista de exigências")
 
+        if df_req.empty:
+            st.info("Você ainda não cadastrou exigências.")
+        else:
+            def _req_resume(d):
+                if not isinstance(d, dict):
+                    return ""
+                keys = ["PB","EM","Lisina","MetCis","Ca","Na"]
+                return " | ".join([f"{k}:{d.get(k,0)}" for k in keys])
+
+            df_req["req_min_resumo"] = df_req["req_min"].apply(_req_resume)
+
+            st.dataframe(
+                df_req[["exigencia","fase","req_min_resumo","updated_at"]],
+                use_container_width=True,
+                hide_index=True
+            )
+
+            st.markdown("### ✏️ Editar exigência")
+
+            req_id = st.selectbox(
+                "Selecione para editar",
+                df_req["id"].tolist(),
+                format_func=lambda _id: f"{df_req.loc[df_req['id']==_id,'exigencia'].iloc[0]} | {df_req.loc[df_req['id']==_id,'fase'].iloc[0]}",
+                key="sel_edit_req"
+            )
+
+            row = df_req[df_req["id"] == req_id].iloc[0]
+            req_min = row["req_min"] if isinstance(row["req_min"], dict) else {}
+
+            with st.form("form_edit_req"):
+                exigencia_edit = st.text_input("Exigencia", value=str(row["exigencia"]), key="edit_exigencia")
+                fase_edit = st.text_input("Fase", value=str(row["fase"]), key="edit_fase")
+
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    PB_e = st.number_input("PB mínima (%)", value=_get_req(req_min, "PB"), step=0.01, key="edit_PB")
+                    EM_e = st.number_input("EM mínima", value=_get_req(req_min, "EM"), step=0.01, key="edit_EM")
+                    Pdig_e = st.number_input("Pdig mínima (%)", value=_get_req(req_min, "Pdig"), step=0.01, key="edit_Pdig")
+                with c2:
+                    Ca_e = st.number_input("Ca mínima (%)", value=_get_req(req_min, "Ca"), step=0.01, key="edit_Ca")
+                    Na_e = st.number_input("Na mínima (%)", value=_get_req(req_min, "Na"), step=0.01, key="edit_Na")
+                    Lisina_e = st.number_input("Lisina mínima (%)", value=_get_req(req_min, "Lisina"), step=0.01, key="edit_Lisina")
+                with c3:
+                    MetCis_e = st.number_input("MetCis mínima (%)", value=_get_req(req_min, "MetCis"), step=0.01, key="edit_MetCis")
+                    Treonina_e = st.number_input("Treonina mínima (%)", value=_get_req(req_min, "Treonina"), step=0.01, key="edit_Treonina")
+                    Triptofano_e = st.number_input("Triptofano mínima (%)", value=_get_req(req_min, "Triptofano"), step=0.01, key="edit_Triptofano")
+
+                colA, colB = st.columns(2)
+                with colA:
+                    btn_save = st.form_submit_button("Salvar alterações ✅")
+                with colB:
+                    btn_delete = st.form_submit_button("Excluir exigência 🗑️")
+
+            if btn_save:
+                if not exigencia_edit.strip() or not fase_edit.strip():
+                    st.error("Exigencia e fase não podem ficar vazias.")
+                else:
+                    payload_upd = {
+                        "exigencia": exigencia_edit.strip(),
+                        "fase": fase_edit.strip(),
+                        "req_min": {
+                            "PB": float(PB_e), "EM": float(EM_e), "Pdig": float(Pdig_e),
+                            "Ca": float(Ca_e), "Na": float(Na_e),
+                            "Lisina": float(Lisina_e), "MetCis": float(MetCis_e),
+                            "Treonina": float(Treonina_e), "Triptofano": float(Triptofano_e),
+                        }
+                    }
+                    try:
+                        sb_user.table("requirements").update(payload_upd).eq("id", req_id).execute()
+                        st.success("Exigência atualizada ✅")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Erro ao atualizar: {e}")
+
+            if btn_delete:
+                try:
+                    sb_user.table("requirements").delete().eq("id", req_id).execute()
+                    st.success("Exigência excluída ✅")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao excluir: {e}")
+
+    # ✅ IMPORTANTÍSSIMO: não deixa cair na formulação
     st.stop()
+
 
 
 
@@ -308,9 +227,7 @@ else:
 # =========================================================
 st.title("Formulador de Racao (Suinos) - Web")
 
-from supabase_client import supabase_authed
 
-access_token = st.session_state.get("access_token")
 if not access_token:
     st.error("Sessão inválida. Faça login novamente.")
     st.stop()
