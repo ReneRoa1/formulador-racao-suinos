@@ -108,13 +108,38 @@ if menu == "📚 Cadastros (meus dados)":
 st.title("Formulador de Racao (Suinos) - Web")
 usar_banco = st.toggle("Usar dados do banco (Supabase)", value=True)
 
-df_food = pd.DataFrame()
-df_req = pd.DataFrame()
+df_food_db = fetch_foods(sb_user, user_id)
+df_req_db  = fetch_requirements(sb_user, user_id)
+
+
+from supabase_client import supabase_authed
+access_token = st.session_state.get("access_token")
+if not access_token:
+    st.error("Sessão inválida. Faça login novamente.")
+    st.stop()
+
+sb_user = supabase_authed(access_token)
 
 if usar_banco:
     try:
-        df_food_db = fetch_foods()
-        df_req_db = fetch_requirements()
+        foods_rows = (
+    sb_user.table("foods")
+    .select("*")
+    .eq("user_id", user_id)
+    .execute()
+    .data
+)
+        req_rows = (
+    sb_user.table("requirements")
+    .select("*")
+    .eq("user_id", user_id)
+    .execute()
+    .data
+)
+
+        df_food_db = pd.DataFrame(foods_rows)
+        df_req_db = pd.DataFrame(req_rows)
+
 
         if not df_food_db.empty and not df_req_db.empty:
             df_food = foods_to_df_for_solver(df_food_db)

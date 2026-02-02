@@ -142,28 +142,31 @@ def import_requirements_from_df(df_req: pd.DataFrame) -> int:
     return len(rows)
 
 
-def fetch_foods() -> pd.DataFrame:
-    base, headers = _cfg()
-    r = requests.get(
-        f"{base}/rest/v1/foods",
-        headers=headers,
-        params={"select": "nome,categoria,preco,nutrientes,updated_at", "order": "nome.asc"},
-        timeout=30,
+import pandas as pd
+
+def fetch_foods(sb_user, user_id: str) -> pd.DataFrame:
+    data = (
+        sb_user.table("foods")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("nome")
+        .execute()
+        .data
     )
-    r.raise_for_status()
-    return pd.DataFrame(r.json() or [])
+    return pd.DataFrame(data or [])
 
 
-def fetch_requirements() -> pd.DataFrame:
-    base, headers = _cfg()
-    r = requests.get(
-        f"{base}/rest/v1/requirements",
-        headers=headers,
-        params={"select": "exigencia,fase,req_min,updated_at", "order": "exigencia.asc,fase.asc"},
-        timeout=30,
+def fetch_requirements(sb_user, user_id: str) -> pd.DataFrame:
+    data = (
+        sb_user.table("requirements")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("exigencia")
+        .execute()
+        .data
     )
-    r.raise_for_status()
-    return pd.DataFrame(r.json() or [])
+    return pd.DataFrame(data or [])
+
 
 def foods_to_df_for_solver(df_food_db: pd.DataFrame) -> pd.DataFrame:
     """
