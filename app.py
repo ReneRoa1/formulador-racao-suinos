@@ -101,6 +101,115 @@ if menu == "📚 Cadastros (meus dados)":
     # 🚨 ISSO É O MAIS IMPORTANTE
     st.stop()
 
+    st.divider()
+st.subheader("📌 Minhas Exigências (requirements)")
+
+# ----------- FORM: adicionar exigência -----------
+st.markdown("### ➕ Adicionar exigência")
+
+with st.form("form_add_req", clear_on_submit=True):
+    exigencia = st.text_input("Nome do grupo (exigencia)", placeholder="Ex.: Rostagno / NRC / Empresa X")
+    fase = st.text_input("Fase", placeholder="Ex.: Crescimento 30-50kg")
+
+    st.caption("Mínimos de nutrientes (preencha com 0 se não usar)")
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        PB = st.number_input("PB mínimo (%)", min_value=0.0, value=0.0, step=0.01)
+        EM = st.number_input("EM mínimo", min_value=0.0, value=0.0, step=0.01)
+        Pdig = st.number_input("Pdig mínimo (%)", min_value=0.0, value=0.0, step=0.01)
+    with c2:
+        Ca = st.number_input("Ca mínimo (%)", min_value=0.0, value=0.0, step=0.01)
+        Na = st.number_input("Na mínimo (%)", min_value=0.0, value=0.0, step=0.01)
+        Lisina = st.number_input("Lisina mínima (%)", min_value=0.0, value=0.0, step=0.01)
+    with c3:
+        MetCis = st.number_input("MetCis mínimo (%)", min_value=0.0, value=0.0, step=0.01)
+        Treonina = st.number_input("Treonina mínima (%)", min_value=0.0, value=0.0, step=0.01)
+        Triptofano = st.number_input("Triptofano mínimo (%)", min_value=0.0, value=0.0, step=0.01)
+
+    submitted_req = st.form_submit_button("Adicionar exigência")
+
+if submitted_req:
+    if not exigencia.strip() or not fase.strip():
+        st.error("Preencha exigencia e fase.")
+    else:
+        req_min = {
+            "PB": float(PB),
+            "EM": float(EM),
+            "Pdig": float(Pdig),
+            "Ca": float(Ca),
+            "Na": float(Na),
+            "Lisina": float(Lisina),
+            "MetCis": float(MetCis),
+            "Treonina": float(Treonina),
+            "Triptofano": float(Triptofano),
+        }
+
+        payload = {
+            "user_id": user_id,
+            "exigencia": exigencia.strip(),
+            "fase": fase.strip(),
+            "req_min": req_min,   # ✅ JSON
+        }
+
+        try:
+            sb_user.table("requirements").insert(payload).execute()
+            st.success("Exigência adicionada ✅")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Erro ao inserir exigência: {e}")
+
+# ----------- LISTAGEM -----------
+st.markdown("### 📋 Lista de exigências")
+
+req_rows = (
+    sb_user.table("requirements")
+    .select("id,exigencia,fase,req_min,updated_at")
+    .eq("user_id", user_id)
+    .order("exigencia")
+    .execute()
+    .data
+)
+
+df_req = pd.DataFrame(req_rows)
+
+if df_req.empty:
+    st.info("Você ainda não cadastrou exigências.")
+else:
+    # resumo do req_min na tabela
+    def _req_resume(d):
+        if not isinstance(d, dict):
+            return ""
+        keys = ["PB","EM","Lisina","MetCis","Ca","Na"]
+        return " | ".join([f"{k}:{d.get(k,0)}" for k in keys])
+
+    df_req["req_min_resumo"] = df_req["req_min"].apply(_req_resume)
+
+    st.dataframe(
+        df_req[["exigencia", "fase", "req_min_resumo", "updated_at"]],
+        use_container_width=True,
+        hide_index=True
+    )
+
+# ----------- EXCLUIR -----------
+st.markdown("### 🗑️ Excluir exigência")
+
+if not df_req.empty:
+    req_id = st.selectbox(
+        "Selecione uma exigência",
+        df_req["id"].tolist(),
+        format_func=lambda _id: f"{df_req.loc[df_req['id']==_id,'exigencia'].iloc[0]} | {df_req.loc[df_req['id']==_id,'fase'].iloc[0]}",
+        key="sel_del_req"
+    )
+
+    if st.button("Excluir exigência", key="btn_del_req"):
+        try:
+            sb_user.table("requirements").delete().eq("id", req_id).execute()
+            st.success("Excluída ✅")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Erro ao excluir: {e}")
+
 
 # =========================================================
 # SEÇÃO FORMULAR (se chegou aqui, menu == "Formular ração")
