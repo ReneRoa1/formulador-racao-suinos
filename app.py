@@ -227,7 +227,6 @@ if menu == "📚 Cadastros (meus dados)":
 # =========================================================
 st.title("Formulador de Racao (Suinos) - Web")
 
-sb_user = supabase_authed(access_token)
 
 usar_banco = st.toggle("Usar dados do banco (Supabase)", value=True)
 
