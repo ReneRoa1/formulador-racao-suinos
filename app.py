@@ -15,7 +15,17 @@ from pulp import LpStatus, value
 
 from auth_ui import auth_gate
 user_id = auth_gate()
+from supabase_client import supabase_authed
 
+session = st.session_state.get("session")
+access_token = session.access_token if session else None
+
+if not access_token:
+    st.error("Sessão inválida. Faça login novamente.")
+    st.stop()
+
+# ✅ client autenticado (vale para o app inteiro)
+sb_user = supabase_authed(access_token)
 menu = st.sidebar.radio("Menu", ["Formular ração", "📚 Cadastros (meus dados)"])
 
 from catalog_db import (
@@ -232,20 +242,39 @@ df_req = pd.DataFrame()
 
 if usar_banco:
     try:
-        # ✅ aqui NÃO usa sb_user
-        df_food_db = fetch_foods(user_id)
-        df_req_db  = fetch_requirements(user_id)
+        foods_rows = (
+            sb_user.table("foods")
+            .select("*")
+            .eq("user_id", user_id)
+            .order("nome")
+            .execute()
+            .data
+        )
+
+        req_rows = (
+            sb_user.table("requirements")
+            .select("*")
+            .eq("user_id", user_id)
+            .order("exigencia")
+            .execute()
+            .data
+        )
+
+        df_food_db = pd.DataFrame(foods_rows)
+        df_req_db  = pd.DataFrame(req_rows)
 
         if not df_food_db.empty and not df_req_db.empty:
             df_food = foods_to_df_for_solver(df_food_db)
-            df_req = requirements_to_df_for_ui(df_req_db)
+            df_req  = requirements_to_df_for_ui(df_req_db)
             st.success("Dados carregados do banco com sucesso ✅")
         else:
             st.warning("Banco vazio. Envie a planilha para importar e começar.")
             usar_banco = False
+
     except Exception as e:
         st.warning(f"Não consegui ler do banco agora: {e}")
         usar_banco = False
+
 
 
 if not usar_banco:
