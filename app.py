@@ -227,26 +227,12 @@ if menu == "📚 Cadastros (meus dados)":
 # =========================================================
 st.title("Formulador de Racao (Suinos) - Web")
 
-
-if not access_token:
-    st.error("Sessão inválida. Faça login novamente.")
-    st.stop()
-
 sb_user = supabase_authed(access_token)
 
 usar_banco = st.toggle("Usar dados do banco (Supabase)", value=True)
 
 df_food_db = fetch_foods(sb_user, user_id)
-df_req_db  = fetch_requirements(sb_user, user_id)
-
-
-from supabase_client import supabase_authed
-access_token = st.session_state.get("access_token")
-if not access_token:
-    st.error("Sessão inválida. Faça login novamente.")
-    st.stop()
-
-sb_user = supabase_authed(access_token)
+df_req_db  = fetch_requirements(sb_user, user_id)       
 
 if usar_banco:
     try:
