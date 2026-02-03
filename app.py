@@ -220,39 +220,21 @@ if menu == "📚 Cadastros (meus dados)":
     st.stop()
 
 
-
-
 # =========================================================
 # SEÇÃO FORMULAR (se chegou aqui, menu == "Formular ração")
 # =========================================================
 st.title("Formulador de Racao (Suinos) - Web")
 
-
 usar_banco = st.toggle("Usar dados do banco (Supabase)", value=True)
 
-df_food_db = fetch_foods(sb_user, user_id)
-df_req_db  = fetch_requirements(sb_user, user_id)       
+df_food = pd.DataFrame()
+df_req = pd.DataFrame()
 
 if usar_banco:
     try:
-        foods_rows = (
-    sb_user.table("foods")
-    .select("*")
-    .eq("user_id", user_id)
-    .execute()
-    .data
-)
-        req_rows = (
-    sb_user.table("requirements")
-    .select("*")
-    .eq("user_id", user_id)
-    .execute()
-    .data
-)
-
-        df_food_db = pd.DataFrame(foods_rows)
-        df_req_db = pd.DataFrame(req_rows)
-
+        # ✅ aqui NÃO usa sb_user
+        df_food_db = fetch_foods(user_id)
+        df_req_db  = fetch_requirements(user_id)
 
         if not df_food_db.empty and not df_req_db.empty:
             df_food = foods_to_df_for_solver(df_food_db)
@@ -264,6 +246,7 @@ if usar_banco:
     except Exception as e:
         st.warning(f"Não consegui ler do banco agora: {e}")
         usar_banco = False
+
 
 if not usar_banco:
     arquivo = st.file_uploader(
