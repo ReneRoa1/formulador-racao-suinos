@@ -62,8 +62,91 @@ if menu == "📚 Cadastros (meus dados)":
     # =====================================================
     with tab_foods:
         st.subheader("🍽️ Meus Alimentos")
-        # (seu CRUD de alimentos aqui, usando sb_user)
-        # ...
+
+        st.markdown("### ➕ Adicionar alimento")
+        with st.form("form_add_food", clear_on_submit=True):
+            nome = st.text_input("Nome do alimento", placeholder="Ex.: Milho")
+            categoria = st.text_input("Categoria (opcional)", placeholder="Ex.: Energia / Proteína")
+            preco = st.number_input("Preço (R$/kg)", min_value=0.0, value=0.0, step=0.01)
+
+            st.caption("Nutrientes (preencha com 0 se não souber)")
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                PB = st.number_input("PB (%)", min_value=0.0, value=0.0, step=0.01, key="food_PB")
+                EM = st.number_input("EM", min_value=0.0, value=0.0, step=0.01, key="food_EM")
+                Ca = st.number_input("Ca (%)", min_value=0.0, value=0.0, step=0.01, key="food_Ca")
+                Na = st.number_input("Na (%)", min_value=0.0, value=0.0, step=0.01, key="food_Na")
+            with c2:
+                Lisina = st.number_input("Lisina (%)", min_value=0.0, value=0.0, step=0.01, key="food_Lisina")
+                MetCis = st.number_input("MetCis (%)", min_value=0.0, value=0.0, step=0.01, key="food_MetCis")
+                Treonina = st.number_input("Treonina (%)", min_value=0.0, value=0.0, step=0.01, key="food_Treonina")
+                Triptofano = st.number_input("Triptofano (%)", min_value=0.0, value=0.0, step=0.01, key="food_Triptofano")
+            with c3:
+                Pdig = st.number_input("Pdig (%)", min_value=0.0, value=0.0, step=0.01, key="food_Pdig")
+                FB = st.number_input("FB (%)", min_value=0.0, value=0.0, step=0.01, key="food_FB")
+                EE = st.number_input("EE (%)", min_value=0.0, value=0.0, step=0.01, key="food_EE")
+
+            submitted_food = st.form_submit_button("Adicionar")
+
+        if submitted_food:
+            if not nome.strip():
+                st.error("Informe o nome do alimento.")
+            else:
+                payload = {
+                    "user_id": user_id,
+                    "nome": nome.strip(),
+                    "categoria": categoria.strip() if categoria.strip() else None,
+                    "preco": float(preco),
+                    # ✅ nunca pode ser NULL
+                    "nutrientes": {
+                        "PB": float(PB), "EM": float(EM), "Pdig": float(Pdig),
+                        "Ca": float(Ca), "Na": float(Na),
+                        "Lisina": float(Lisina), "MetCis": float(MetCis),
+                        "Treonina": float(Treonina), "Triptofano": float(Triptofano),
+                        "FB": float(FB), "EE": float(EE),
+                    }
+                }
+                try:
+                    sb_user.table("foods").insert(payload).execute()
+                    st.success("Alimento adicionado ✅")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao inserir alimento: {e}")
+
+        st.markdown("### 📋 Lista de alimentos")
+        foods_rows = (
+            sb_user.table("foods")
+            .select("id,nome,categoria,preco,nutrientes,updated_at")
+            .eq("user_id", user_id)
+            .order("nome")
+            .execute()
+            .data
+        )
+        df_food = pd.DataFrame(foods_rows)
+
+        if df_food.empty:
+            st.info("Você ainda não cadastrou alimentos.")
+        else:
+            st.dataframe(
+                df_food[["nome", "categoria", "preco", "updated_at"]],
+                use_container_width=True,
+                hide_index=True
+            )
+
+            st.markdown("### 🗑️ Excluir alimento")
+            food_id = st.selectbox(
+                "Selecione um alimento",
+                df_food["id"].tolist(),
+                format_func=lambda _id: df_food.loc[df_food["id"] == _id, "nome"].iloc[0],
+                key="sel_del_food"
+            )
+            if st.button("Excluir selecionado", key="btn_del_food"):
+                try:
+                    sb_user.table("foods").delete().eq("id", food_id).execute()
+                    st.success("Excluído ✅")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao excluir: {e}")
 
     # =====================================================
     # TAB 2: EXIGÊNCIAS
