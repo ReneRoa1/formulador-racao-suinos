@@ -58,6 +58,26 @@ def _get_req(req_min: dict, key: str) -> float:
             return 0.0
     return 0.0
 
+def reset_food_editor_keys():
+    keys = [
+        "edit_food_nome", "edit_food_cat", "edit_food_preco",
+        "edit_food_PB", "edit_food_EM", "edit_food_Ca", "edit_food_Na",
+        "edit_food_Lisina", "edit_food_MetCis", "edit_food_Treonina", "edit_food_Triptofano",
+        "edit_food_Pdig", "edit_food_FB", "edit_food_EE",
+    ]
+    for k in keys:
+        st.session_state.pop(k, None)
+
+def reset_req_editor_keys():
+    keys = [
+        "edit_exigencia", "edit_fase",
+        "edit_PB", "edit_EM", "edit_Pdig",
+        "edit_Ca", "edit_Na", "edit_Lisina",
+        "edit_MetCis", "edit_Treonina", "edit_Triptofano",
+    ]
+    for k in keys:
+        st.session_state.pop(k, None)
+
 # =========================================================
 # SEÇÃO CADASTROS
 # =========================================================
@@ -159,11 +179,13 @@ if menu == "📚 Cadastros (meus dados)":
             food_id_to_label = dict(zip(df_food["id"], df_food["nome"]))
 
             food_id = st.selectbox(
-                "Selecione um alimento para editar",
+               "Selecione um alimento para editar",
                 options=list(food_id_to_label.keys()),
-                format_func=lambda rid: food_id_to_label.get(rid, rid),
-                key="sel_edit_food"
-            )
+               format_func=lambda rid: food_id_to_label.get(rid, rid),
+               key="sel_edit_food",
+               on_change=reset_food_editor_keys,   # ✅ AQUI
+)
+
 
             row = df_food[df_food["id"] == food_id].iloc[0]
             nutr = row["nutrientes"] if isinstance(row["nutrientes"], dict) else {}
@@ -331,11 +353,13 @@ if menu == "📚 Cadastros (meus dados)":
             req_id_to_label = dict(zip(df_req["id"], df_req["exigencia"] + " | " + df_req["fase"]))
 
             req_id = st.selectbox(
-                "Selecione para editar",
-                options=list(req_id_to_label.keys()),
-                format_func=lambda rid: req_id_to_label.get(rid, rid),
-                key="sel_edit_req"
-            )
+                 "Selecione para editar",
+                 options=list(req_id_to_label.keys()),
+                 format_func=lambda rid: req_id_to_label.get(rid, rid),
+                 key="sel_edit_req",
+                 on_change=reset_req_editor_keys,   # ✅ AQUI
+)
+
 
             row = df_req[df_req["id"] == req_id].iloc[0]
             req_min = row["req_min"] if isinstance(row["req_min"], dict) else {}
