@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
 
-st.set_page_config(page_title="Formulador de Racao - Suinos", layout="wide")
+st.set_page_config(page_title="Formulador de Ração - Suínos", layout="wide")
 
-# AGORA vêm os outros imports
 import pandas as pd
 from datetime import datetime
 import streamlit.components.v1 as components
+
 from history_db import save_run, list_runs, load_run
 from reporting import build_report_html, make_pdf_report
 from io_excel import load_planilha, build_ui_table
@@ -14,8 +14,18 @@ from solver import extract_requirements, solve_lp, calc_dieta, build_results_tab
 from pulp import LpStatus, value
 
 from auth_ui import auth_gate
-user_id = auth_gate()
 from supabase_client import supabase_authed
+
+from catalog_db import (
+    fetch_foods, fetch_requirements,
+    import_foods_from_df, import_requirements_from_df,
+    foods_to_df_for_solver, requirements_to_df_for_ui
+)
+
+# =========================================================
+# AUTH + SUPABASE
+# =========================================================
+user_id = auth_gate()
 
 session = st.session_state.get("session")
 access_token = session.access_token if session else None
@@ -24,17 +34,29 @@ if not access_token:
     st.error("Sessão inválida. Faça login novamente.")
     st.stop()
 
-# ✅ client autenticado (vale para o app inteiro)
 sb_user = supabase_authed(access_token)
+
 menu = st.sidebar.radio("Menu", ["Formular ração", "📚 Cadastros (meus dados)"])
-
-from catalog_db import (
-    fetch_foods, fetch_requirements,
-    import_foods_from_df, import_requirements_from_df,
-    foods_to_df_for_solver, requirements_to_df_for_ui
-)
-
 st.success(f"✅ Logado! user_id={user_id}")
+
+# =========================================================
+# HELPERS
+# =========================================================
+def _nut_get(nutr: dict, key: str) -> float:
+    if isinstance(nutr, dict) and nutr.get(key) is not None:
+        try:
+            return float(nutr.get(key))
+        except Exception:
+            return 0.0
+    return 0.0
+
+def _get_req(req_min: dict, key: str) -> float:
+    if isinstance(req_min, dict) and key in req_min and req_min[key] is not None:
+        try:
+            return float(req_min[key])
+        except Exception:
+            return 0.0
+    return 0.0
 
 # =========================================================
 # SEÇÃO CADASTROS
@@ -50,14 +72,14 @@ if menu == "📚 Cadastros (meus dados)":
     with tab_foods:
         st.subheader("🍽️ Meus Alimentos")
 
-        # ============================
+        # ----------------------------
         # 1) ADICIONAR
-        # ============================
+        # ----------------------------
         st.markdown("### ➕ Adicionar alimento")
 
         with st.form("form_add_food", clear_on_submit=True):
             nome = st.text_input("Nome do alimento", placeholder="Ex.: Milho")
-            categoria = st.text_input("Categoria (opcional)", placeholder="Ex.: Energetico / Proteico / Aditivo")
+            categoria = st.text_input("Categoria (opcional)", placeholder="Ex.: Energético / Proteico / Aditivo")
             preco = st.number_input("Preço (R$/kg)", min_value=0.0, value=0.0, step=0.01)
 
             st.caption("Nutrientes (preencha com 0 se não souber)")
@@ -103,114 +125,113 @@ if menu == "📚 Cadastros (meus dados)":
                 except Exception as e:
                     st.error(f"Erro ao inserir alimento: {e}")
 
-# ============================
-# 2) LISTA + EDITAR/EXCLUIR (ROBUSTO)
-# ============================
+        # ----------------------------
+        # 2) LISTA + EDITAR/EXCLUIR
+        # ----------------------------
         st.markdown("### 📋 Lista de alimentos")
 
-foods_rows = (      
-    sb_user.table("foods")
-    .select("id,nome,categoria,preco,nutrientes,updated_at")
-    .eq("user_id", user_id)
-    .order("nome")
-    .execute()
-    .data
-)
+        foods_rows = (
+            sb_user.table("foods")
+            .select("id,nome,categoria,preco,nutrientes,updated_at")
+            .eq("user_id", user_id)
+            .order("nome")
+            .execute()
+            .data
+        )
 
-df_food = pd.DataFrame(foods_rows or [])
+        df_food = pd.DataFrame(foods_rows or [])
 
-if df_food.empty:
-    st.info("Você ainda não cadastrou alimentos.")
-else:
+        if df_food.empty:
+            st.info("Você ainda não cadastrou alimentos.")
+        else:
+            df_food = df_food[df_food["id"].notna()].copy()
+            df_food["id"] = df_food["id"].astype(str)
+            df_food["nome"] = df_food["nome"].astype(str)
 
-# garante string (resolve bug do selectbox não achar)
-    df_food = df_food[df_food["id"].notna()].copy()
-    df_food["id"] = df_food["id"].astype(str)
-    df_food["nome"] = df_food["nome"].astype(str)
+            st.dataframe(
+                df_food[["nome", "categoria", "preco", "updated_at"]],
+                use_container_width=True,
+                hide_index=True
+            )
 
-st.dataframe(
-    df_food[["nome", "categoria", "preco", "updated_at"]],
-    use_container_width=True,
-    hide_index=True
-)
+            st.markdown("### ✏️ Editar alimento")
 
-def _nut_get(nutr: dict, key: str) -> float:
-    if isinstance(nutr, dict) and nutr.get(key) is not None:
-        try:
-            return float(nutr.get(key))
-        except Exception:
-            return 0.0
-    return 0.0
+            food_id_to_label = dict(zip(df_food["id"], df_food["nome"]))
 
-st.markdown("### ✏️ Editar alimento")
+            food_id = st.selectbox(
+                "Selecione um alimento para editar",
+                options=list(food_id_to_label.keys()),
+                format_func=lambda rid: food_id_to_label.get(rid, rid),
+                key="sel_edit_food"
+            )
 
-food_id_to_label = dict(zip(df_food["id"], df_food["nome"]))
+            row = df_food[df_food["id"] == food_id].iloc[0]
+            nutr = row["nutrientes"] if isinstance(row["nutrientes"], dict) else {}
 
-food_id = st.selectbox(
-    "Selecione um alimento para editar",
-    options=list(food_id_to_label.keys()),
-    format_func=lambda rid: food_id_to_label.get(rid, rid),
-    key="sel_edit_food"
-)
+            with st.form("form_edit_food"):
+                nome_e = st.text_input("Nome do alimento", value=row["nome"], key="edit_food_nome")
+                categoria_e = st.text_input("Categoria (opcional)", value=str(row.get("categoria") or ""), key="edit_food_cat")
+                preco_e = st.number_input(
+                    "Preço (R$/kg)",
+                    min_value=0.0,
+                    value=float(row.get("preco") or 0.0),
+                    step=0.01,
+                    key="edit_food_preco"
+                )
 
-row = df_food[df_food["id"] == food_id].iloc[0]
-nutr = row["nutrientes"] if isinstance(row["nutrientes"], dict) else {}
+                st.caption("Nutrientes")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    PB_e = st.number_input("PB (%)", value=_nut_get(nutr, "PB"), step=0.01, key="edit_food_PB")
+                    EM_e = st.number_input("EM", value=_nut_get(nutr, "EM"), step=0.01, key="edit_food_EM")
+                    Ca_e = st.number_input("Ca (%)", value=_nut_get(nutr, "Ca"), step=0.01, key="edit_food_Ca")
+                    Na_e = st.number_input("Na (%)", value=_nut_get(nutr, "Na"), step=0.01, key="edit_food_Na")
+                with c2:
+                    Lisina_e = st.number_input("Lisina (%)", value=_nut_get(nutr, "Lisina"), step=0.01, key="edit_food_Lisina")
+                    MetCis_e = st.number_input("MetCis (%)", value=_nut_get(nutr, "MetCis"), step=0.01, key="edit_food_MetCis")
+                    Treonina_e = st.number_input("Treonina (%)", value=_nut_get(nutr, "Treonina"), step=0.01, key="edit_food_Treonina")
+                    Triptofano_e = st.number_input("Triptofano (%)", value=_nut_get(nutr, "Triptofano"), step=0.01, key="edit_food_Triptofano")
+                with c3:
+                    Pdig_e = st.number_input("Pdig (%)", value=_nut_get(nutr, "Pdig"), step=0.01, key="edit_food_Pdig")
+                    FB_e = st.number_input("FB (%)", value=_nut_get(nutr, "FB"), step=0.01, key="edit_food_FB")
+                    EE_e = st.number_input("EE (%)", value=_nut_get(nutr, "EE"), step=0.01, key="edit_food_EE")
 
-with st.form("form_edit_food"):
-    nome_e = st.text_input("Nome do alimento", value=row["nome"], key="edit_food_nome")
-    categoria_e = st.text_input("Categoria (opcional)", value=str(row.get("categoria") or ""), key="edit_food_cat")
-    preco_e = st.number_input("Preço (R$/kg)", min_value=0.0, value=float(row.get("preco") or 0.0),
-                              step=0.01, key="edit_food_preco")
+                colA, colB = st.columns(2)
+                with colA:
+                    btn_save_food = st.form_submit_button("Salvar alterações ✅")
+                with colB:
+                    btn_delete_food = st.form_submit_button("Excluir alimento 🗑️")
 
-    st.caption("Nutrientes")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        PB_e = st.number_input("PB (%)", value=_nut_get(nutr, "PB"), step=0.01, key="edit_food_PB")
-        EM_e = st.number_input("EM", value=_nut_get(nutr, "EM"), step=0.01, key="edit_food_EM")
-        Ca_e = st.number_input("Ca (%)", value=_nut_get(nutr, "Ca"), step=0.01, key="edit_food_Ca")
-        Na_e = st.number_input("Na (%)", value=_nut_get(nutr, "Na"), step=0.01, key="edit_food_Na")
-    with c2:
-        Lisina_e = st.number_input("Lisina (%)", value=_nut_get(nutr, "Lisina"), step=0.01, key="edit_food_Lisina")
-        MetCis_e = st.number_input("MetCis (%)", value=_nut_get(nutr, "MetCis"), step=0.01, key="edit_food_MetCis")
-        Treonina_e = st.number_input("Treonina (%)", value=_nut_get(nutr, "Treonina"), step=0.01, key="edit_food_Treonina")
-        Triptofano_e = st.number_input("Triptofano (%)", value=_nut_get(nutr, "Triptofano"), step=0.01, key="edit_food_Triptofano")
-    with c3:
-        Pdig_e = st.number_input("Pdig (%)", value=_nut_get(nutr, "Pdig"), step=0.01, key="edit_food_Pdig")
-        FB_e = st.number_input("FB (%)", value=_nut_get(nutr, "FB"), step=0.01, key="edit_food_FB")
-        EE_e = st.number_input("EE (%)", value=_nut_get(nutr, "EE"), step=0.01, key="edit_food_EE")
+            if btn_save_food:
+                if not nome_e.strip():
+                    st.error("Nome não pode ficar vazio.")
+                else:
+                    payload_upd = {
+                        "nome": nome_e.strip(),
+                        "categoria": categoria_e.strip() if categoria_e.strip() else None,
+                        "preco": float(preco_e),
+                        "nutrientes": {
+                            "PB": float(PB_e), "EM": float(EM_e), "Pdig": float(Pdig_e),
+                            "Ca": float(Ca_e), "Na": float(Na_e),
+                            "Lisina": float(Lisina_e), "MetCis": float(MetCis_e),
+                            "Treonina": float(Treonina_e), "Triptofano": float(Triptofano_e),
+                            "FB": float(FB_e), "EE": float(EE_e),
+                        }
+                    }
+                    try:
+                        sb_user.table("foods").update(payload_upd).eq("id", food_id).execute()
+                        st.success("Alimento atualizado ✅")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Erro ao atualizar alimento: {e}")
 
-    colA, colB = st.columns(2)
-    with colA:
-        btn_save_food = st.form_submit_button("Salvar alterações ✅")
-    with colB:
-        btn_delete_food = st.form_submit_button("Excluir alimento 🗑️")
-
-if btn_save_food:
-    if not nome_e.strip():
-        st.error("Nome não pode ficar vazio.")
-    else:
-        payload_upd = {
-            "nome": nome_e.strip(),
-            "categoria": categoria_e.strip() if categoria_e.strip() else None,
-            "preco": float(preco_e),
-            "nutrientes": {
-                "PB": float(PB_e), "EM": float(EM_e), "Pdig": float(Pdig_e),
-                "Ca": float(Ca_e), "Na": float(Na_e),
-                "Lisina": float(Lisina_e), "MetCis": float(MetCis_e),
-                "Treonina": float(Treonina_e), "Triptofano": float(Triptofano_e),
-                "FB": float(FB_e), "EE": float(EE_e),
-            }
-        }
-        sb_user.table("foods").update(payload_upd).eq("id", food_id).execute()
-        st.success("Alimento atualizado ✅")
-        st.rerun()
-
-    if btn_delete_food:
-        sb_user.table("foods").delete().eq("id", food_id).execute()
-        st.success("Alimento excluído ✅")
-        st.rerun()
-
-
+            if btn_delete_food:
+                try:
+                    sb_user.table("foods").delete().eq("id", food_id).execute()
+                    st.success("Alimento excluído ✅")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao excluir alimento: {e}")
 
     # =====================================================
     # TAB 2: EXIGÊNCIAS
@@ -218,33 +239,9 @@ if btn_save_food:
     with tab_reqs:
         st.subheader("📌 Minhas Exigências")
 
-        # ----------- CARREGA LISTA -----------
-        req_rows = (
-            sb_user.table("requirements")
-            .select("id,exigencia,fase,req_min,updated_at")
-            .eq("user_id", user_id)
-            .order("exigencia")
-            .execute()
-            .data
-        )
-        df_req = pd.DataFrame(req_rows or [])
-
-        df_req = df_req[df_req["id"].notna()].copy()
-        df_req["id"] = df_req["id"].astype(str)
-        df_req["exigencia"] = df_req["exigencia"].astype(str)
-        df_req["fase"] = df_req["fase"].astype(str)
-
-        def _get_req(req_min: dict, key: str) -> float:
-            if isinstance(req_min, dict) and key in req_min and req_min[key] is not None:
-                try:
-                    return float(req_min[key])
-                except Exception:
-                    return 0.0
-            return 0.0
-
-        # =====================================================
-        # 1) ADICIONAR
-        # =====================================================
+        # ----------------------------
+        # 1) ADICIONAR EXIGÊNCIA
+        # ----------------------------
         st.markdown("### ➕ Adicionar exigência")
 
         with st.form("form_add_req", clear_on_submit=True):
@@ -291,41 +288,54 @@ if btn_save_food:
 
         st.divider()
 
-        # =====================================================
-        # 2) LISTA + EDITAR / EXCLUIR
-        # =====================================================
+        # ----------------------------
+        # 2) LISTA + EDITAR/EXCLUIR
+        # ----------------------------
         st.markdown("### 📋 Lista de exigências")
+
+        req_rows = (
+            sb_user.table("requirements")
+            .select("id,exigencia,fase,req_min,updated_at")
+            .eq("user_id", user_id)
+            .order("exigencia")
+            .execute()
+            .data
+        )
+
+        df_req = pd.DataFrame(req_rows or [])
 
         if df_req.empty:
             st.info("Você ainda não cadastrou exigências.")
         else:
+            df_req = df_req[df_req["id"].notna()].copy()
+            df_req["id"] = df_req["id"].astype(str)
+            df_req["exigencia"] = df_req["exigencia"].astype(str)
+            df_req["fase"] = df_req["fase"].astype(str)
+
             def _req_resume(d):
                 if not isinstance(d, dict):
                     return ""
-                keys = ["PB","EM","Lisina","MetCis","Ca","Na"]
+                keys = ["PB", "EM", "Lisina", "MetCis", "Ca", "Na"]
                 return " | ".join([f"{k}:{d.get(k,0)}" for k in keys])
 
             df_req["req_min_resumo"] = df_req["req_min"].apply(_req_resume)
 
             st.dataframe(
-                df_req[["exigencia","fase","req_min_resumo","updated_at"]],
+                df_req[["exigencia", "fase", "req_min_resumo", "updated_at"]],
                 use_container_width=True,
                 hide_index=True
             )
 
             st.markdown("### ✏️ Editar exigência")
 
-            req_id_to_label = dict(
-    zip(df_req["id"], df_req["exigencia"] + " | " + df_req["fase"])
-)
+            req_id_to_label = dict(zip(df_req["id"], df_req["exigencia"] + " | " + df_req["fase"]))
 
             req_id = st.selectbox(
-            "Selecione para editar",
-            options=list(req_id_to_label.keys()),
-            format_func=lambda rid: req_id_to_label.get(rid, rid),
-            key="sel_edit_req"
-)
-
+                "Selecione para editar",
+                options=list(req_id_to_label.keys()),
+                format_func=lambda rid: req_id_to_label.get(rid, rid),
+                key="sel_edit_req"
+            )
 
             row = df_req[df_req["id"] == req_id].iloc[0]
             req_min = row["req_min"] if isinstance(row["req_min"], dict) else {}
