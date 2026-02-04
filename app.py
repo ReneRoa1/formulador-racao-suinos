@@ -63,7 +63,7 @@ if menu == "📚 Cadastros (meus dados)":
     with tab_foods:
         st.subheader("🍽️ Meus Alimentos")
 
-        st.markdown("### ➕ Adicionar alimento")
+        st.markdown("### ➕   alimento")
         with st.form("form_add_food", clear_on_submit=True):
             nome = st.text_input("Nome do alimento", placeholder="Ex.: Milho")
             categoria = st.text_input("Categoria (opcional)", placeholder="Ex.: Energia / Proteína")
@@ -147,6 +147,108 @@ if menu == "📚 Cadastros (meus dados)":
                     st.rerun()
                 except Exception as e:
                     st.error(f"Erro ao excluir: {e}")
+
+   # 🔹 2) LISTA + EDITAR + EXCLUIR  ⬅️ COLE O BLOCO AQUI
+    st.markdown("### 📋 Lista de alimentos")
+
+foods_rows = (
+    sb_user.table("foods")
+    .select("id,nome,categoria,preco,nutrientes,updated_at")
+    .eq("user_id", user_id)
+    .order("nome")
+    .execute()
+    .data
+)
+df_food = pd.DataFrame(foods_rows)
+
+def _nut_get(nutr: dict, key: str) -> float:
+    if isinstance(nutr, dict) and nutr.get(key) is not None:
+        try:
+            return float(nutr.get(key))
+        except Exception:
+            return 0.0
+    return 0.0
+
+if df_food.empty:
+    st.info("Você ainda não cadastrou alimentos.")
+else:
+    st.dataframe(
+        df_food[["nome", "categoria", "preco", "updated_at"]],
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.markdown("### ✏️ Editar alimento")
+
+    food_id = st.selectbox(
+        "Selecione um alimento para editar",
+        df_food["id"].tolist(),
+        format_func=lambda _id: df_food.loc[df_food["id"] == _id, "nome"].iloc[0],
+        key="sel_edit_food"
+    )
+
+    row = df_food[df_food["id"] == food_id].iloc[0]
+    nutr = row["nutrientes"] if isinstance(row["nutrientes"], dict) else {}
+
+    with st.form("form_edit_food"):
+        nome_e = st.text_input("Nome do alimento", value=str(row["nome"]), key="edit_food_nome")
+        categoria_e = st.text_input("Categoria (opcional)", value=str(row.get("categoria") or ""), key="edit_food_cat")
+        preco_e = st.number_input("Preço (R$/kg)", min_value=0.0, value=float(row.get("preco") or 0.0), step=0.01, key="edit_food_preco")
+
+        st.caption("Nutrientes")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            PB_e = st.number_input("PB (%)", value=_nut_get(nutr, "PB"), step=0.01, key="edit_food_PB")
+            EM_e = st.number_input("EM", value=_nut_get(nutr, "EM"), step=0.01, key="edit_food_EM")
+            Ca_e = st.number_input("Ca (%)", value=_nut_get(nutr, "Ca"), step=0.01, key="edit_food_Ca")
+            Na_e = st.number_input("Na (%)", value=_nut_get(nutr, "Na"), step=0.01, key="edit_food_Na")
+        with c2:
+            Lisina_e = st.number_input("Lisina (%)", value=_nut_get(nutr, "Lisina"), step=0.01, key="edit_food_Lisina")
+            MetCis_e = st.number_input("MetCis (%)", value=_nut_get(nutr, "MetCis"), step=0.01, key="edit_food_MetCis")
+            Treonina_e = st.number_input("Treonina (%)", value=_nut_get(nutr, "Treonina"), step=0.01, key="edit_food_Treonina")
+            Triptofano_e = st.number_input("Triptofano (%)", value=_nut_get(nutr, "Triptofano"), step=0.01, key="edit_food_Triptofano")
+        with c3:
+            Pdig_e = st.number_input("Pdig (%)", value=_nut_get(nutr, "Pdig"), step=0.01, key="edit_food_Pdig")
+            FB_e = st.number_input("FB (%)", value=_nut_get(nutr, "FB"), step=0.01, key="edit_food_FB")
+            EE_e = st.number_input("EE (%)", value=_nut_get(nutr, "EE"), step=0.01, key="edit_food_EE")
+
+        colA, colB = st.columns(2)
+        with colA:
+            btn_save_food = st.form_submit_button("Salvar alterações ✅")
+        with colB:
+            btn_delete_food = st.form_submit_button("Excluir alimento 🗑️")
+
+    if btn_save_food:
+        if not nome_e.strip():
+            st.error("Nome não pode ficar vazio.")
+        else:
+            payload_upd = {
+                "nome": nome_e.strip(),
+                "categoria": categoria_e.strip() if categoria_e.strip() else None,
+                "preco": float(preco_e),
+                "nutrientes": {
+                    "PB": float(PB_e), "EM": float(EM_e), "Pdig": float(Pdig_e),
+                    "Ca": float(Ca_e), "Na": float(Na_e),
+                    "Lisina": float(Lisina_e), "MetCis": float(MetCis_e),
+                    "Treonina": float(Treonina_e), "Triptofano": float(Triptofano_e),
+                    "FB": float(FB_e), "EE": float(EE_e),
+                }
+            }
+            try:
+                sb_user.table("foods").update(payload_upd).eq("id", food_id).execute()
+                st.success("Alimento atualizado ✅")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erro ao atualizar: {e}")
+
+    if btn_delete_food:
+        try:
+            sb_user.table("foods").delete().eq("id", food_id).execute()
+            st.success("Alimento excluído ✅")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Erro ao excluir: {e}")
+
 
     # =====================================================
     # TAB 2: EXIGÊNCIAS
