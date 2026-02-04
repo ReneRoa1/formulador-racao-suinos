@@ -57,7 +57,7 @@ if menu == "📚 Cadastros (meus dados)":
 
         with st.form("form_add_food", clear_on_submit=True):
             nome = st.text_input("Nome do alimento", placeholder="Ex.: Milho")
-            categoria = st.text_input("Categoria (opcional)", placeholder="Ex.: Energia / Proteína")
+            categoria = st.text_input("Categoria (opcional)", placeholder="Ex.: Energetico / Proteico / Aditivo")
             preco = st.number_input("Preço (R$/kg)", min_value=0.0, value=0.0, step=0.01)
 
             st.caption("Nutrientes (preencha com 0 se não souber)")
@@ -603,11 +603,11 @@ if st.button("Formular (mínimo custo)"):
     st.write("DEBUG exigencia_escolhida:", exigencia_escolhida)
 
 
-      # -------- payload (AGORA sim, depois de linhas existir) --------
+      # -------- ( payload ) --------
     payload = {
         "codigo": codigo_formula,  
         "data_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "exigencia": exigencia_escolhida,  # <-- ESSENCIAL
+        "exigencia": exigencia_escolhida,
         "fase": fase,
         "custo_R_kg": round(custo, 6),
         "custo_R_ton": round(custo * 1000, 2),
