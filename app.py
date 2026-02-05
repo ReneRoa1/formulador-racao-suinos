@@ -10,14 +10,13 @@ import streamlit.components.v1 as components
 from history_db import save_run, list_runs, load_run
 from reporting import build_report_html, make_pdf_report
 from io_excel import load_planilha, build_ui_table
-from solver import extract_requirements, solve_lp, calc_dieta, build_results_table, get_shadow_prices
-from pulp import LpStatus, value
+from solver import solve_lp, calc_dieta, build_results_table, get_shadow_prices
+from pulp import value
 
 from auth_ui import auth_gate
 from supabase_client import supabase_authed
 
 from catalog_db import (
-    fetch_foods, fetch_requirements,
     import_foods_from_df, import_requirements_from_df,
     foods_to_df_for_solver, requirements_to_df_for_ui
 )
@@ -58,30 +57,11 @@ def _get_req(req_min: dict, key: str) -> float:
             return 0.0
     return 0.0
 
-def reset_food_editor_keys():
-    keys = [
-        "edit_food_nome", "edit_food_cat", "edit_food_preco",
-        "edit_food_PB", "edit_food_EM", "edit_food_Ca", "edit_food_Na",
-        "edit_food_Lisina", "edit_food_MetCis", "edit_food_Treonina", "edit_food_Triptofano",
-        "edit_food_Pdig", "edit_food_FB", "edit_food_EE",
-    ]
-    for k in keys:
-        st.session_state.pop(k, None)
-
-def reset_req_editor_keys():
-    keys = [
-        "edit_exigencia", "edit_fase",
-        "edit_PB", "edit_EM", "edit_Pdig",
-        "edit_Ca", "edit_Na", "edit_Lisina",
-        "edit_MetCis", "edit_Treonina", "edit_Triptofano",
-    ]
-    for k in keys:
-        st.session_state.pop(k, None)
 
 # =========================================================
-# SEÇÃO CADASTROS
+# CADASTROS (FOODS + REQUIREMENTS)
 # =========================================================
-if menu == "📚 Cadastros (meus dados)":
+def render_cadastros(sb_user, user_id):
     st.title("📚 Cadastros (meus dados)")
 
     tab_foods, tab_reqs = st.tabs(["🍽️ Alimentos", "📌 Exigências"])
@@ -92,11 +72,7 @@ if menu == "📚 Cadastros (meus dados)":
     with tab_foods:
         st.subheader("🍽️ Meus Alimentos")
 
-        # ----------------------------
-        # 1) ADICIONAR
-        # ----------------------------
         st.markdown("### ➕ Adicionar alimento")
-
         with st.form("form_add_food", clear_on_submit=True):
             nome = st.text_input("Nome do alimento", placeholder="Ex.: Milho")
             categoria = st.text_input("Categoria (opcional)", placeholder="Ex.: Energético / Proteico / Aditivo")
@@ -145,135 +121,128 @@ if menu == "📚 Cadastros (meus dados)":
                 except Exception as e:
                     st.error(f"Erro ao inserir alimento: {e}")
 
-        # ----------------------------
-        # 2) LISTA + EDITAR/EXCLUIR
-        # ----------------------------
         st.markdown("### 📋 Lista de alimentos")
 
-foods_rows = (
-    sb_user.table("foods")
-    .select("id,nome,categoria,preco,nutrientes,updated_at")
-    .eq("user_id", user_id)
-    .order("nome")
-    .execute()
-    .data
-)
+        foods_rows = (
+            sb_user.table("foods")
+            .select("id,nome,categoria,preco,nutrientes,updated_at")
+            .eq("user_id", user_id)
+            .order("nome")
+            .execute()
+            .data
+        )
+        df_food = pd.DataFrame(foods_rows or [])
 
-df_food = pd.DataFrame(foods_rows or [])
-
-if df_food.empty:
-    st.info("Você ainda não cadastrou alimentos.")
-else:
-    df_food = df_food[df_food["id"].notna()].copy()
-    df_food["id"] = df_food["id"].astype(str)
-    df_food["nome"] = df_food["nome"].astype(str)
-
-    st.dataframe(
-        df_food[["nome", "categoria", "preco", "updated_at"]],
-        use_container_width=True,
-        hide_index=True
-    )
-
-    st.markdown("### ✏️ Editar alimento")
-
-    food_id_to_label = dict(zip(df_food["id"], df_food["nome"]))
-
-    def on_food_change():
-        st.session_state["food_edit_changed"] = True
-
-    food_id = st.selectbox(
-        "Selecione um alimento para editar",
-        options=list(food_id_to_label.keys()),
-        format_func=lambda rid: food_id_to_label.get(rid, rid),
-        key="sel_edit_food",
-        on_change=on_food_change,
-    )
-
-    row = df_food[df_food["id"] == str(food_id)].iloc[0]
-    nutr = row["nutrientes"] if isinstance(row["nutrientes"], dict) else {}
-
-    # Se mudou a seleção (ou primeira vez), carrega no session_state ANTES dos widgets
-    if st.session_state.get("food_edit_prev") != food_id or st.session_state.get("food_edit_changed", False):
-        st.session_state["food_edit_prev"] = food_id
-        st.session_state["food_edit_changed"] = False
-
-        st.session_state["edit_food_nome"] = str(row.get("nome") or "")
-        st.session_state["edit_food_cat"] = str(row.get("categoria") or "")
-        st.session_state["edit_food_preco"] = float(row.get("preco") or 0.0)
-
-        st.session_state["edit_food_PB"] = _nut_get(nutr, "PB")
-        st.session_state["edit_food_EM"] = _nut_get(nutr, "EM")
-        st.session_state["edit_food_Ca"] = _nut_get(nutr, "Ca")
-        st.session_state["edit_food_Na"] = _nut_get(nutr, "Na")
-        st.session_state["edit_food_Lisina"] = _nut_get(nutr, "Lisina")
-        st.session_state["edit_food_MetCis"] = _nut_get(nutr, "MetCis")
-        st.session_state["edit_food_Treonina"] = _nut_get(nutr, "Treonina")
-        st.session_state["edit_food_Triptofano"] = _nut_get(nutr, "Triptofano")
-        st.session_state["edit_food_Pdig"] = _nut_get(nutr, "Pdig")
-        st.session_state["edit_food_FB"] = _nut_get(nutr, "FB")
-        st.session_state["edit_food_EE"] = _nut_get(nutr, "EE")
-
-    # Form de edição — IMPORTANTe: usar só key (sem value=...)
-    with st.form("form_edit_food"):
-        st.text_input("Nome do alimento", key="edit_food_nome")
-        st.text_input("Categoria (opcional)", key="edit_food_cat")
-        st.number_input("Preço (R$/kg)", min_value=0.0, step=0.01, key="edit_food_preco")
-
-        st.caption("Nutrientes")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.number_input("PB (%)", step=0.01, key="edit_food_PB")
-            st.number_input("EM", step=0.01, key="edit_food_EM")
-            st.number_input("Ca (%)", step=0.01, key="edit_food_Ca")
-            st.number_input("Na (%)", step=0.01, key="edit_food_Na")
-        with c2:
-            st.number_input("Lisina (%)", step=0.01, key="edit_food_Lisina")
-            st.number_input("MetCis (%)", step=0.01, key="edit_food_MetCis")
-            st.number_input("Treonina (%)", step=0.01, key="edit_food_Treonina")
-            st.number_input("Triptofano (%)", step=0.01, key="edit_food_Triptofano")
-        with c3:
-            st.number_input("Pdig (%)", step=0.01, key="edit_food_Pdig")
-            st.number_input("FB (%)", step=0.01, key="edit_food_FB")
-            st.number_input("EE (%)", step=0.01, key="edit_food_EE")
-
-        colA, colB = st.columns(2)
-        with colA:
-            btn_save_food = st.form_submit_button("Salvar alterações ✅")
-        with colB:
-            btn_delete_food = st.form_submit_button("Excluir alimento 🗑️")
-
-    if btn_save_food:
-        nome_e = (st.session_state.get("edit_food_nome") or "").strip()
-        if not nome_e:
-            st.error("Nome não pode ficar vazio.")
+        if df_food.empty:
+            st.info("Você ainda não cadastrou alimentos.")
         else:
-            payload_upd = {
-                "nome": nome_e,
-                "categoria": (st.session_state.get("edit_food_cat") or "").strip() or None,
-                "preco": float(st.session_state.get("edit_food_preco") or 0.0),
-                "nutrientes": {
-                    "PB": float(st.session_state.get("edit_food_PB") or 0.0),
-                    "EM": float(st.session_state.get("edit_food_EM") or 0.0),
-                    "Pdig": float(st.session_state.get("edit_food_Pdig") or 0.0),
-                    "Ca": float(st.session_state.get("edit_food_Ca") or 0.0),
-                    "Na": float(st.session_state.get("edit_food_Na") or 0.0),
-                    "Lisina": float(st.session_state.get("edit_food_Lisina") or 0.0),
-                    "MetCis": float(st.session_state.get("edit_food_MetCis") or 0.0),
-                    "Treonina": float(st.session_state.get("edit_food_Treonina") or 0.0),
-                    "Triptofano": float(st.session_state.get("edit_food_Triptofano") or 0.0),
-                    "FB": float(st.session_state.get("edit_food_FB") or 0.0),
-                    "EE": float(st.session_state.get("edit_food_EE") or 0.0),
-                }
-            }
-            sb_user.table("foods").update(payload_upd).eq("id", food_id).execute()
-            st.success("Alimento atualizado ✅")
-            st.rerun()
+            df_food = df_food[df_food["id"].notna()].copy()
+            df_food["id"] = df_food["id"].astype(str)
+            df_food["nome"] = df_food["nome"].astype(str)
 
-    if btn_delete_food:
-        sb_user.table("foods").delete().eq("id", food_id).execute()
-        st.success("Alimento excluído ✅")
-        st.rerun()
+            st.dataframe(
+                df_food[["nome", "categoria", "preco", "updated_at"]],
+                use_container_width=True,
+                hide_index=True
+            )
 
+            st.markdown("### ✏️ Editar alimento")
+
+            food_id_to_label = dict(zip(df_food["id"], df_food["nome"]))
+
+            def on_food_change():
+                st.session_state["food_edit_changed"] = True
+
+            food_id = st.selectbox(
+                "Selecione um alimento para editar",
+                options=list(food_id_to_label.keys()),
+                format_func=lambda rid: food_id_to_label.get(rid, rid),
+                key="sel_edit_food",
+                on_change=on_food_change,
+            )
+
+            row = df_food[df_food["id"] == str(food_id)].iloc[0]
+            nutr = row["nutrientes"] if isinstance(row["nutrientes"], dict) else {}
+
+            if st.session_state.get("food_edit_prev") != food_id or st.session_state.get("food_edit_changed", False):
+                st.session_state["food_edit_prev"] = food_id
+                st.session_state["food_edit_changed"] = False
+
+                st.session_state["edit_food_nome"] = str(row.get("nome") or "")
+                st.session_state["edit_food_cat"] = str(row.get("categoria") or "")
+                st.session_state["edit_food_preco"] = float(row.get("preco") or 0.0)
+
+                st.session_state["edit_food_PB"] = _nut_get(nutr, "PB")
+                st.session_state["edit_food_EM"] = _nut_get(nutr, "EM")
+                st.session_state["edit_food_Ca"] = _nut_get(nutr, "Ca")
+                st.session_state["edit_food_Na"] = _nut_get(nutr, "Na")
+                st.session_state["edit_food_Lisina"] = _nut_get(nutr, "Lisina")
+                st.session_state["edit_food_MetCis"] = _nut_get(nutr, "MetCis")
+                st.session_state["edit_food_Treonina"] = _nut_get(nutr, "Treonina")
+                st.session_state["edit_food_Triptofano"] = _nut_get(nutr, "Triptofano")
+                st.session_state["edit_food_Pdig"] = _nut_get(nutr, "Pdig")
+                st.session_state["edit_food_FB"] = _nut_get(nutr, "FB")
+                st.session_state["edit_food_EE"] = _nut_get(nutr, "EE")
+
+            with st.form("form_edit_food"):
+                st.text_input("Nome do alimento", key="edit_food_nome")
+                st.text_input("Categoria (opcional)", key="edit_food_cat")
+                st.number_input("Preço (R$/kg)", min_value=0.0, step=0.01, key="edit_food_preco")
+
+                st.caption("Nutrientes")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    st.number_input("PB (%)", step=0.01, key="edit_food_PB")
+                    st.number_input("EM", step=0.01, key="edit_food_EM")
+                    st.number_input("Ca (%)", step=0.01, key="edit_food_Ca")
+                    st.number_input("Na (%)", step=0.01, key="edit_food_Na")
+                with c2:
+                    st.number_input("Lisina (%)", step=0.01, key="edit_food_Lisina")
+                    st.number_input("MetCis (%)", step=0.01, key="edit_food_MetCis")
+                    st.number_input("Treonina (%)", step=0.01, key="edit_food_Treonina")
+                    st.number_input("Triptofano (%)", step=0.01, key="edit_food_Triptofano")
+                with c3:
+                    st.number_input("Pdig (%)", step=0.01, key="edit_food_Pdig")
+                    st.number_input("FB (%)", step=0.01, key="edit_food_FB")
+                    st.number_input("EE (%)", step=0.01, key="edit_food_EE")
+
+                colA, colB = st.columns(2)
+                with colA:
+                    btn_save_food = st.form_submit_button("Salvar alterações ✅")
+                with colB:
+                    btn_delete_food = st.form_submit_button("Excluir alimento 🗑️")
+
+            if btn_save_food:
+                nome_e = (st.session_state.get("edit_food_nome") or "").strip()
+                if not nome_e:
+                    st.error("Nome não pode ficar vazio.")
+                else:
+                    payload_upd = {
+                        "nome": nome_e,
+                        "categoria": (st.session_state.get("edit_food_cat") or "").strip() or None,
+                        "preco": float(st.session_state.get("edit_food_preco") or 0.0),
+                        "nutrientes": {
+                            "PB": float(st.session_state.get("edit_food_PB") or 0.0),
+                            "EM": float(st.session_state.get("edit_food_EM") or 0.0),
+                            "Pdig": float(st.session_state.get("edit_food_Pdig") or 0.0),
+                            "Ca": float(st.session_state.get("edit_food_Ca") or 0.0),
+                            "Na": float(st.session_state.get("edit_food_Na") or 0.0),
+                            "Lisina": float(st.session_state.get("edit_food_Lisina") or 0.0),
+                            "MetCis": float(st.session_state.get("edit_food_MetCis") or 0.0),
+                            "Treonina": float(st.session_state.get("edit_food_Treonina") or 0.0),
+                            "Triptofano": float(st.session_state.get("edit_food_Triptofano") or 0.0),
+                            "FB": float(st.session_state.get("edit_food_FB") or 0.0),
+                            "EE": float(st.session_state.get("edit_food_EE") or 0.0),
+                        }
+                    }
+                    sb_user.table("foods").update(payload_upd).eq("id", food_id).execute()
+                    st.success("Alimento atualizado ✅")
+                    st.rerun()
+
+            if btn_delete_food:
+                sb_user.table("foods").delete().eq("id", food_id).execute()
+                st.success("Alimento excluído ✅")
+                st.rerun()
 
     # =====================================================
     # TAB 2: EXIGÊNCIAS
@@ -281,11 +250,7 @@ else:
     with tab_reqs:
         st.subheader("📌 Minhas Exigências")
 
-        # ----------------------------
-        # 1) ADICIONAR EXIGÊNCIA
-        # ----------------------------
         st.markdown("### ➕ Adicionar exigência")
-
         with st.form("form_add_req", clear_on_submit=True):
             exigencia_new = st.text_input("Nome do grupo (exigencia)", placeholder="Ex.: Rostagno / NRC / Empresa X")
             fase_new = st.text_input("Fase", placeholder="Ex.: Crescimento 30-50kg")
@@ -321,130 +286,116 @@ else:
                         "Treonina": float(Treonina), "Triptofano": float(Triptofano),
                     },
                 }
-                try:
-                    sb_user.table("requirements").insert(payload).execute()
-                    st.success("Exigência adicionada ✅")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Erro ao inserir exigência: {e}")
+                sb_user.table("requirements").insert(payload).execute()
+                st.success("Exigência adicionada ✅")
+                st.rerun()
 
-        st.divider()
+        st.markdown("### 📋 Lista de exigências")
 
-        # ----------------------------
-# 2) LISTA + EDITAR/EXCLUIR (REQS)
-# ----------------------------
-st.markdown("### 📋 Lista de exigências")
+        req_rows = (
+            sb_user.table("requirements")
+            .select("id,exigencia,fase,req_min,updated_at")
+            .eq("user_id", user_id)
+            .order("exigencia")
+            .execute()
+            .data
+        )
+        df_req = pd.DataFrame(req_rows or [])
 
-req_rows = (
-    sb_user.table("requirements")
-    .select("id,exigencia,fase,req_min,updated_at")
-    .eq("user_id", user_id)
-    .order("exigencia")
-    .execute()
-    .data
-)
-
-df_req = pd.DataFrame(req_rows or [])
-
-if df_req.empty:
-    st.info("Você ainda não cadastrou exigências.")
-else:
-    df_req = df_req[df_req["id"].notna()].copy()
-    df_req["id"] = df_req["id"].astype(str)
-    df_req["exigencia"] = df_req["exigencia"].astype(str)
-    df_req["fase"] = df_req["fase"].astype(str)
-
-    st.markdown("### ✏️ Editar exigência")
-
-    req_id_to_label = dict(zip(df_req["id"], df_req["exigencia"] + " | " + df_req["fase"]))
-
-    def on_req_change():
-        st.session_state["req_edit_changed"] = True
-
-    req_id = st.selectbox(
-        "Selecione para editar",
-        options=list(req_id_to_label.keys()),
-        format_func=lambda rid: req_id_to_label.get(rid, rid),
-        key="sel_edit_req",
-        on_change=on_req_change,
-    )
-
-    row = df_req[df_req["id"] == str(req_id)].iloc[0]
-    req_min = row["req_min"] if isinstance(row["req_min"], dict) else {}
-
-    if st.session_state.get("req_edit_prev") != req_id or st.session_state.get("req_edit_changed", False):
-        st.session_state["req_edit_prev"] = req_id
-        st.session_state["req_edit_changed"] = False
-
-        st.session_state["edit_exigencia"] = str(row.get("exigencia") or "")
-        st.session_state["edit_fase"] = str(row.get("fase") or "")
-
-        st.session_state["edit_PB"] = _get_req(req_min, "PB")
-        st.session_state["edit_EM"] = _get_req(req_min, "EM")
-        st.session_state["edit_Pdig"] = _get_req(req_min, "Pdig")
-        st.session_state["edit_Ca"] = _get_req(req_min, "Ca")
-        st.session_state["edit_Na"] = _get_req(req_min, "Na")
-        st.session_state["edit_Lisina"] = _get_req(req_min, "Lisina")
-        st.session_state["edit_MetCis"] = _get_req(req_min, "MetCis")
-        st.session_state["edit_Treonina"] = _get_req(req_min, "Treonina")
-        st.session_state["edit_Triptofano"] = _get_req(req_min, "Triptofano")
-
-    with st.form("form_edit_req"):
-        st.text_input("Exigencia", key="edit_exigencia")
-        st.text_input("Fase", key="edit_fase")
-
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.number_input("PB mínima (%)", step=0.01, key="edit_PB")
-            st.number_input("EM mínima", step=0.01, key="edit_EM")
-            st.number_input("Pdig mínima (%)", step=0.01, key="edit_Pdig")
-        with c2:
-            st.number_input("Ca mínima (%)", step=0.01, key="edit_Ca")
-            st.number_input("Na mínima (%)", step=0.01, key="edit_Na")
-            st.number_input("Lisina mínima (%)", step=0.01, key="edit_Lisina")
-        with c3:
-            st.number_input("MetCis mínima (%)", step=0.01, key="edit_MetCis")
-            st.number_input("Treonina mínima (%)", step=0.01, key="edit_Treonina")
-            st.number_input("Triptofano mínima (%)", step=0.01, key="edit_Triptofano")
-
-        colA, colB = st.columns(2)
-        with colA:
-            btn_save = st.form_submit_button("Salvar alterações ✅")
-        with colB:
-            btn_delete = st.form_submit_button("Excluir exigência 🗑️")
-
-    if btn_save:
-        if not (st.session_state.get("edit_exigencia") or "").strip() or not (st.session_state.get("edit_fase") or "").strip():
-            st.error("Exigencia e fase não podem ficar vazias.")
+        if df_req.empty:
+            st.info("Você ainda não cadastrou exigências.")
         else:
-            payload_upd = {
-                "exigencia": (st.session_state.get("edit_exigencia") or "").strip(),
-                "fase": (st.session_state.get("edit_fase") or "").strip(),
-                "req_min": {
-                    "PB": float(st.session_state.get("edit_PB") or 0.0),
-                    "EM": float(st.session_state.get("edit_EM") or 0.0),
-                    "Pdig": float(st.session_state.get("edit_Pdig") or 0.0),
-                    "Ca": float(st.session_state.get("edit_Ca") or 0.0),
-                    "Na": float(st.session_state.get("edit_Na") or 0.0),
-                    "Lisina": float(st.session_state.get("edit_Lisina") or 0.0),
-                    "MetCis": float(st.session_state.get("edit_MetCis") or 0.0),
-                    "Treonina": float(st.session_state.get("edit_Treonina") or 0.0),
-                    "Triptofano": float(st.session_state.get("edit_Triptofano") or 0.0),
-                }
-            }
-            sb_user.table("requirements").update(payload_upd).eq("id", req_id).execute()
-            st.success("Exigência atualizada ✅")
-            st.rerun()
+            df_req = df_req[df_req["id"].notna()].copy()
+            df_req["id"] = df_req["id"].astype(str)
+            df_req["exigencia"] = df_req["exigencia"].astype(str)
+            df_req["fase"] = df_req["fase"].astype(str)
 
-    if btn_delete:
-        sb_user.table("requirements").delete().eq("id", req_id).execute()
-        st.success("Exigência excluída ✅")
-        st.rerun()
+            st.markdown("### ✏️ Editar exigência")
 
+            req_id_to_label = dict(zip(df_req["id"], df_req["exigencia"] + " | " + df_req["fase"]))
 
-    # ✅ IMPORTANTÍSSIMO: não deixa cair na formulação
-    st.stop()
+            def on_req_change():
+                st.session_state["req_edit_changed"] = True
 
+            req_id = st.selectbox(
+                "Selecione para editar",
+                options=list(req_id_to_label.keys()),
+                format_func=lambda rid: req_id_to_label.get(rid, rid),
+                key="sel_edit_req",
+                on_change=on_req_change,
+            )
+
+            row = df_req[df_req["id"] == str(req_id)].iloc[0]
+            req_min = row["req_min"] if isinstance(row["req_min"], dict) else {}
+
+            if st.session_state.get("req_edit_prev") != req_id or st.session_state.get("req_edit_changed", False):
+                st.session_state["req_edit_prev"] = req_id
+                st.session_state["req_edit_changed"] = False
+
+                st.session_state["edit_exigencia"] = str(row.get("exigencia") or "")
+                st.session_state["edit_fase"] = str(row.get("fase") or "")
+
+                st.session_state["edit_PB"] = _get_req(req_min, "PB")
+                st.session_state["edit_EM"] = _get_req(req_min, "EM")
+                st.session_state["edit_Pdig"] = _get_req(req_min, "Pdig")
+                st.session_state["edit_Ca"] = _get_req(req_min, "Ca")
+                st.session_state["edit_Na"] = _get_req(req_min, "Na")
+                st.session_state["edit_Lisina"] = _get_req(req_min, "Lisina")
+                st.session_state["edit_MetCis"] = _get_req(req_min, "MetCis")
+                st.session_state["edit_Treonina"] = _get_req(req_min, "Treonina")
+                st.session_state["edit_Triptofano"] = _get_req(req_min, "Triptofano")
+
+            with st.form("form_edit_req"):
+                st.text_input("Exigencia", key="edit_exigencia")
+                st.text_input("Fase", key="edit_fase")
+
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    st.number_input("PB mínima (%)", step=0.01, key="edit_PB")
+                    st.number_input("EM mínima", step=0.01, key="edit_EM")
+                    st.number_input("Pdig mínima (%)", step=0.01, key="edit_Pdig")
+                with c2:
+                    st.number_input("Ca mínima (%)", step=0.01, key="edit_Ca")
+                    st.number_input("Na mínima (%)", step=0.01, key="edit_Na")
+                    st.number_input("Lisina mínima (%)", step=0.01, key="edit_Lisina")
+                with c3:
+                    st.number_input("MetCis mínima (%)", step=0.01, key="edit_MetCis")
+                    st.number_input("Treonina mínima (%)", step=0.01, key="edit_Treonina")
+                    st.number_input("Triptofano mínima (%)", step=0.01, key="edit_Triptofano")
+
+                colA, colB = st.columns(2)
+                with colA:
+                    btn_save = st.form_submit_button("Salvar alterações ✅")
+                with colB:
+                    btn_delete = st.form_submit_button("Excluir exigência 🗑️")
+
+            if btn_save:
+                if not (st.session_state.get("edit_exigencia") or "").strip() or not (st.session_state.get("edit_fase") or "").strip():
+                    st.error("Exigencia e fase não podem ficar vazias.")
+                else:
+                    payload_upd = {
+                        "exigencia": (st.session_state.get("edit_exigencia") or "").strip(),
+                        "fase": (st.session_state.get("edit_fase") or "").strip(),
+                        "req_min": {
+                            "PB": float(st.session_state.get("edit_PB") or 0.0),
+                            "EM": float(st.session_state.get("edit_EM") or 0.0),
+                            "Pdig": float(st.session_state.get("edit_Pdig") or 0.0),
+                            "Ca": float(st.session_state.get("edit_Ca") or 0.0),
+                            "Na": float(st.session_state.get("edit_Na") or 0.0),
+                            "Lisina": float(st.session_state.get("edit_Lisina") or 0.0),
+                            "MetCis": float(st.session_state.get("edit_MetCis") or 0.0),
+                            "Treonina": float(st.session_state.get("edit_Treonina") or 0.0),
+                            "Triptofano": float(st.session_state.get("edit_Triptofano") or 0.0),
+                        }
+                    }
+                    sb_user.table("requirements").update(payload_upd).eq("id", req_id).execute()
+                    st.success("Exigência atualizada ✅")
+                    st.rerun()
+
+            if btn_delete:
+                sb_user.table("requirements").delete().eq("id", req_id).execute()
+                st.success("Exigência excluída ✅")
+                st.rerun()
 
 # =========================================================
 # SEÇÃO FORMULAR (se chegou aqui, menu == "Formular ração")
