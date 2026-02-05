@@ -398,7 +398,12 @@ def render_cadastros(sb_user, user_id):
                 st.success("Exigência excluída ✅")
                 st.rerun()
 
-
+# =========================================================
+# ROUTER (MENU) ✅
+# =========================================================
+if menu == "📚 Cadastros (meus dados)":
+    render_cadastros(sb_user, user_id)
+    st.stop()
 # =========================================================
 # SEÇÃO FORMULAR (se chegou aqui, menu == "Formular ração")
 # =========================================================
