@@ -62,6 +62,7 @@ def _get_req(req_min: dict, key: str) -> float:
 # CADASTROS (FOODS + REQUIREMENTS)
 # =========================================================
 def render_cadastros(sb_user, user_id):
+    st.stop()
     st.title("📚 Cadastros (meus dados)")
 
     tab_foods, tab_reqs = st.tabs(["🍽️ Alimentos", "📌 Exigências"])
@@ -396,6 +397,7 @@ def render_cadastros(sb_user, user_id):
                 sb_user.table("requirements").delete().eq("id", req_id).execute()
                 st.success("Exigência excluída ✅")
                 st.rerun()
+
 
 # =========================================================
 # SEÇÃO FORMULAR (se chegou aqui, menu == "Formular ração")
