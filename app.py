@@ -62,7 +62,6 @@ def _get_req(req_min: dict, key: str) -> float:
 # CADASTROS (FOODS + REQUIREMENTS)
 # =========================================================
 def render_cadastros(sb_user, user_id):
-    st.stop()
     st.title("📚 Cadastros (meus dados)")
 
     tab_foods, tab_reqs = st.tabs(["🍽️ Alimentos", "📌 Exigências"])
