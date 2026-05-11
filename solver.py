@@ -78,6 +78,73 @@ def solve_lp(df_food_sel: pd.DataFrame, req_min: dict, fb_max=None, ee_max=None)
     return prob, x, status
 
 
+def solve_lp_relaxado(df_food_sel: pd.DataFrame, req_min: dict, fb_max=None, ee_max=None, penalty: float = 1e6):
+    """
+    Versão "elástica" do LP: adiciona variáveis de folga (slack) para cada
+    exigência mínima e para os máximos opcionais (FB/EE). A penalidade é
+    normalizada pelo valor exigido para que nutrientes em escalas diferentes
+    (ex.: EM ~3000 vs Lisina ~1) tenham importância comparável.
+
+    Sempre acha solução desde que a soma dos Max_% por ingrediente ≥ 100 e
+    a soma dos Min_% ≤ 100 (validações já feitas na UI).
+
+    Retorna (prob, x, status, slacks) onde slacks é dict
+    {nome_restricao: valor_da_folga} (positivo = exigência violada).
+    """
+    prob = LpProblem("Formulacao_suinos_relaxado", LpMinimize)
+
+    x = {}
+    for _, row in df_food_sel.iterrows():
+        nome = str(row["Alimentos"])
+        min_inc = float(row["Min_%"])
+        max_inc = float(row["Max_%"])
+        x[nome] = LpVariable(nome, lowBound=min_inc, upBound=max_inc)
+
+    prob += lpSum(x[n] for n in x) == 100, "Soma_100"
+
+    def nutr(nome, col):
+        return float(df_food_sel.loc[df_food_sel["Alimentos"] == nome, col].iloc[0])
+
+    slack_vars = {}
+    penal_terms = []
+
+    for nut, minimo in req_min.items():
+        if minimo is None:
+            continue
+        if nut not in df_food_sel.columns:
+            continue
+        s = LpVariable(f"slack_min_{nut}", lowBound=0)
+        slack_vars[f"{nut}_min"] = s
+        prob += lpSum(x[n] * nutr(n, nut) for n in x) / 100 + s >= float(minimo), f"{nut}_min"
+        peso = penalty / max(float(minimo), 1e-6)
+        penal_terms.append(peso * s)
+
+    if fb_max is not None and "FB" in df_food_sel.columns:
+        t = LpVariable("slack_max_FB", lowBound=0)
+        slack_vars["FB_max"] = t
+        prob += lpSum(x[n] * nutr(n, "FB") for n in x) / 100 - t <= float(fb_max), "FB_max"
+        peso = penalty / max(float(fb_max), 1e-6)
+        penal_terms.append(peso * t)
+
+    if ee_max is not None and "EE" in df_food_sel.columns:
+        t = LpVariable("slack_max_EE", lowBound=0)
+        slack_vars["EE_max"] = t
+        prob += lpSum(x[n] * nutr(n, "EE") for n in x) / 100 - t <= float(ee_max), "EE_max"
+        peso = penalty / max(float(ee_max), 1e-6)
+        penal_terms.append(peso * t)
+
+    custo = lpSum(x[n] * nutr(n, "Preco") for n in x) / 100
+    if penal_terms:
+        prob += custo + lpSum(penal_terms)
+    else:
+        prob += custo
+
+    solver = pulp.HiGHS(msg=False)
+    prob.solve(solver)
+
+    status = pulp.LpStatus[prob.status]
+    slacks = {name: float(value(v) or 0.0) for name, v in slack_vars.items()}
+    return prob, x, status, slacks
 
 
 

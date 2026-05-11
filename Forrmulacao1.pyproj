@@ -78,7 +78,7 @@
     <Content Include="start.sh">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="URL_KEY.env">
+    <Content Include=".env">
       <SubType>Code</SubType>
     </Content>
   </ItemGroup>

@@ -69,7 +69,7 @@ def build_ui_table(df_food):
 
     n = len(base)
     edit = pd.DataFrame({
-        "Usar": [True] * n,
+        "Usar": [False] * n,
         "Min_%": [0.0] * n,
         "Max_%": [100.0] * n,
     })

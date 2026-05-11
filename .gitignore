@@ -1,0 +1,31 @@
+# Segredos
+.env
+.env.*
+!.env.example
+
+# Virtualenv
+env/
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Visual Studio / IDE
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+
+# Distribuição / build
+build/
+dist/
+*.egg-info/
+
+# OS
+Thumbs.db
+.DS_Store
